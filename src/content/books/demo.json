@@ -1,0 +1,21 @@
+{
+  "slug": "the-happy-prince",
+  "title": "The Happy Prince",
+  "authors": [{ "name": "Oscar Wilde", "deathYear": 1900 }],
+  "language": "en",
+  "publishedYear": 1888,
+  "subjects": ["Fairy tales", "Compassion", "Social inequality"],
+  "description": "A prince and a swallow quietly give away everything they have to help a suffering city.",
+  "source": {
+    "name": "Demo placeholder",
+    "landingPage": "https://standardebooks.org/ebooks/oscar-wilde/short-fiction",
+    "retrieved": "2026-07-29",
+    "rightsBasis": "Author died in 1900; literary copyright has expired under Ireland's life-plus-70-year term. Replace this demo text only with a provenance-checked source edition."
+  },
+  "content": [
+    { "heading": "About this preview", "paragraphs": [
+      "This repository ships with a deliberately short placeholder rather than silently mirroring a third-party ebook corpus.",
+      "Run the importer with a locally supplied, rights-cleared plain-text file to publish the complete work. The build rejects records without author death dates, source provenance, and a rights basis."
+    ]}
+  ]
+}
