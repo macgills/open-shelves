@@ -21,7 +21,9 @@ npm run build
 npm run dev
 ```
 
-Open `http://localhost:4173/open-shelves-/`.
+Open `http://localhost:4173/open-shelves/`.
+
+The deployed site is expected at `https://macgills.github.io/open-shelves/`.
 
 ## Import a complete, rights-cleared text
 
@@ -40,9 +42,9 @@ npm run import:book -- \
 
 Do not import a modern translation, introduction, illustration set, or typographical edition merely because the underlying work is old. Each can carry separate rights.
 
-## Repository name
+## Repository path
 
-The generated URLs currently assume the GitHub repository is named `open-shelves-`. Change `/open-shelves-/` in `scripts/build.mjs`, `scripts/serve.mjs`, and the README if you choose another name.
+The generated URLs use the GitHub Pages project path `/open-shelves/`. The build and local server each define this once as `basePath`.
 
 ## Licensing
 
