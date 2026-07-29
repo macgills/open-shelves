@@ -1,0 +1,16 @@
+{
+  "name": "open-shelves",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --test",
+    "dev": "node scripts/serve.mjs",
+    "import:book": "node scripts/import-book.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
