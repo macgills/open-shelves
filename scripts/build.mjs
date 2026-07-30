@@ -1,43 +1,34 @@
 import path from 'node:path';
-import { escapeHtml, loadBooks, output, resetDist, root, validateBook } from './lib.mjs';
+import { escapeHtml, output, resetDist, root } from './lib.mjs';
 
 const basePath = '/open-shelves';
-const books = await loadBooks();
-const failures = books.flatMap(book => validateBook(book).map(error => `${book.slug ?? 'unknown'}: ${error}`));
-if (failures.length) throw new Error(`Content validation failed:\n${failures.join('\n')}`);
 await resetDist();
 
-const shell = ({ title, body, description = 'Open, provenance-first public-domain books.', scripts = '' }) => `<!doctype html>
+const shell = ({ title, body, description = 'Browse and read Harvard Institutional Books with your own gated access.', scripts = '' }) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="${escapeHtml(description)}"><meta name="color-scheme" content="light dark">
 <title>${escapeHtml(title)} · Open Shelves</title><link rel="stylesheet" href="${basePath}/assets/site.css">
 <script type="module" src="${basePath}/assets/site.js"></script>${scripts}</head>
-<body><header><a class="brand" href="${basePath}/">Open Shelves</a><nav><a href="${basePath}/">Library</a><a href="${basePath}/harvard/">Harvard dataset</a><a href="${basePath}/about/">About</a></nav></header>
-<main>${body}</main><footer><p>Code under MIT. Every book carries its own rights and provenance record.</p></footer></body></html>`;
+<body><header><a class="brand" href="${basePath}/">Open Shelves</a><nav><a href="${basePath}/">Browse</a><a href="${basePath}/about/">About</a></nav></header>
+<main>${body}</main><footer><p>Open Shelves is an independent interface. Dataset access and use remain governed by the Institutional Data Initiative and Hugging Face.</p></footer></body></html>`;
 
-const cards = books.map(book => `<article class="book-card" data-search="${escapeHtml([book.title, ...book.authors.map(a=>a.name), ...(book.subjects??[])].join(' ').toLowerCase())}">
-<p class="eyebrow">${escapeHtml(book.language.toUpperCase())} · ${book.publishedYear ?? 'Undated'}</p>
-<h2><a href="${basePath}/books/${book.slug}/">${escapeHtml(book.title)}</a></h2>
-<p>${escapeHtml(book.authors.map(a=>a.name).join(', '))}</p><p>${escapeHtml(book.description)}</p>
-<div class="tags">${(book.subjects??[]).map(s=>`<span>${escapeHtml(s)}</span>`).join('')}</div></article>`).join('\n');
+const collection = `<section class="hero"><p class="eyebrow">Harvard Institutional Books 1.0</p><h1>Nearly one million public-domain volumes.</h1><p>Browse the official collection, search its metadata, and open OCR page by page without copying the dataset into this site.</p></section>
+<section class="stats" aria-label="Collection scale"><article><strong>983,004</strong><span>volumes</span></article><article><strong>386M</strong><span>pages</span></article><article><strong>254</strong><span>languages</span></article><article><strong>947 GB</strong><span>OCR corpus</span></article></section>
+<section id="access-panel" class="access-panel"><p class="eyebrow">Access</p><h2>Use your own approved access</h2><p>The collection is gated by its publisher. Review and accept the official terms on Hugging Face, then sign in here. Open Shelves requests only the <code>gated-repos</code> permission and keeps the short-lived token in this browser session.</p><p><a class="button secondary" href="https://huggingface.co/datasets/institutional/institutional-books-1.0" target="_blank" rel="noreferrer">Review the official terms ↗</a></p><label class="agreement"><input id="terms-confirmed" type="checkbox"> I have reviewed and accepted the official dataset terms on Hugging Face.</label><div class="button-row"><button id="hf-sign-in" type="button" disabled>Sign in with Hugging Face</button><button id="hf-sign-out" type="button" class="secondary" hidden>Sign out</button></div><p id="auth-status" aria-live="polite">Not connected.</p></section>
+<section id="collection-browser" hidden><div class="browser-heading"><div><p class="eyebrow">Collection browser</p><h2>Browse the shelves</h2></div><form id="harvard-search" class="search inline"><label><span>Optional search</span><input id="harvard-query" type="search" placeholder="Title, author, subject, barcode…"></label><button type="submit">Search</button><button id="clear-search" type="button" class="secondary">Clear</button></form></div><div class="browse-controls"><button id="previous-page" type="button" class="secondary">← Previous</button><button id="random-page" type="button" class="secondary">Random shelf</button><button id="next-page" type="button">Next →</button></div><p id="harvard-status" aria-live="polite">Connect to load the collection.</p><div id="harvard-results" class="catalog"></div><div class="browse-controls"><button id="previous-page-bottom" type="button" class="secondary">← Previous</button><button id="next-page-bottom" type="button">Next →</button></div></section>
+<dialog id="ocr-reader"><article class="reader-dialog"><header><div><p id="reader-meta" class="eyebrow"></p><h2 id="reader-title">Book</h2><p id="reader-author"></p></div><button id="close-reader" type="button" class="secondary" aria-label="Close reader">Close</button></header><nav class="page-controls" aria-label="OCR pages"><button id="previous-reader-page" type="button" class="secondary">← Previous page</button><label>Page <input id="reader-page-number" type="number" min="1" value="1"> of <span id="reader-page-count">1</span></label><button id="next-reader-page" type="button">Next page →</button></nav><pre id="reader-page" tabindex="0"></pre><aside class="provenance"><h3>About this text</h3><p>This is OCR supplied by the official Institutional Books dataset and fetched using your own authorised session. Errors, missing characters, and page artefacts are part of the source OCR.</p></aside></article></dialog>`;
 
-await output('index.html', shell({ title: 'Library', body: `<section class="hero"><p class="eyebrow">A public-domain reading room</p><h1>Old books, made visible.</h1><p>Fast, accessible editions with explicit provenance and conservative copyright checks.</p><p><a href="${basePath}/harvard/">Explore the 983,004-volume Harvard Institutional Books collection →</a></p><label class="search"><span>Search the readable library</span><input id="search" type="search" autocomplete="off" placeholder="Title, author, or subject"></label></section><section><p id="result-count" aria-live="polite">${books.length} book${books.length===1?'':'s'}</p><div id="catalog" class="catalog">${cards}</div></section>` }));
-
-for (const book of books) {
-  const sections = book.content.map(section => `<section>${section.heading ? `<h2>${escapeHtml(section.heading)}</h2>` : ''}${section.paragraphs.map(p=>`<p>${escapeHtml(p)}</p>`).join('')}</section>`).join('');
-  const authors = book.authors.map(a=>`${escapeHtml(a.name)} (${a.deathYear})`).join(', ');
-  await output(`books/${book.slug}/index.html`, shell({ title: book.title, description: book.description, body: `<article class="reader" data-pagefind-body><a class="back" href="${basePath}/">← Library</a><header class="book-header"><p class="eyebrow">${escapeHtml(book.language.toUpperCase())} · ${book.publishedYear ?? 'Undated'}</p><h1>${escapeHtml(book.title)}</h1><p>${authors}</p><p class="dek">${escapeHtml(book.description)}</p></header>${sections}<aside class="provenance"><h2>Rights & provenance</h2><dl><dt>Source</dt><dd><a href="${escapeHtml(book.source.landingPage)}">${escapeHtml(book.source.name)}</a></dd><dt>Retrieved</dt><dd>${escapeHtml(book.source.retrieved)}</dd><dt>Basis</dt><dd>${escapeHtml(book.source.rightsBasis)}</dd></dl></aside></article>` }));
-}
-
-await output('harvard/index.html', shell({
-  title: 'Harvard Institutional Books',
-  description: 'A human-facing discovery layer for Harvard Institutional Books 1.0.',
+const page = shell({
+  title: 'Browse Harvard Institutional Books',
   scripts: `<script type="module" src="${basePath}/assets/harvard.js"></script>`,
-  body: `<article class="reader"><p class="eyebrow">Institutional Books 1.0</p><h1>Nearly one million library books, made discoverable.</h1><p class="dek">Harvard's Institutional Data Initiative released metadata and OCR for 983,004 public-domain volumes digitised through the Google Books project. The complete OCR corpus is roughly 947 GB, so Open Shelves exposes a lightweight metadata discovery layer and promotes selected volumes into readable editions.</p><div class="catalog"><article class="book-card"><p class="eyebrow">Volumes</p><h2>983,004</h2></article><article class="book-card"><p class="eyebrow">Pages</p><h2>386 million</h2></article><article class="book-card"><p class="eyebrow">Languages</p><h2>254</h2></article><article class="book-card"><p class="eyebrow">OCR corpus</p><h2>947 GB</h2></article></div><h2>Search the metadata</h2><p>This searches compact title or author prefix shards generated from the official metadata-only release. It does not download the OCR text into your browser.</p><form id="harvard-search" class="search"><label><span>Search by</span><select id="harvard-mode"><option value="title">Title</option><option value="author">Author</option></select></label><label><span>At least two letters</span><input id="harvard-query" type="search" required minlength="2" placeholder="e.g. Darwin or dictionary"></label><button type="submit">Search</button></form><p id="harvard-status" aria-live="polite">The metadata export is generated during deployment when an authorised Hugging Face token is available.</p><div id="harvard-results" class="catalog"></div><aside class="provenance"><h2>Source and access</h2><p>The official release is gated by early-access terms on Hugging Face. Open Shelves does not bypass that gate or redistribute credentials. Its build uses an authorised token, exports bibliographic discovery fields, and links the collection back to the official source.</p><p><a href="https://huggingface.co/datasets/institutional/institutional-books-1.0-metadata">Official metadata dataset</a> · <a href="https://huggingface.co/datasets/institutional/institutional-books-1.0">Official OCR dataset</a> · <a href="https://institutional.org/institutional-books/">Project overview</a></p></aside></article>`
+  body: collection
+});
+
+await output('index.html', page);
+await output('harvard/index.html', page);
+await output('about/index.html', shell({
+  title: 'About',
+  body: `<article class="reader"><p class="eyebrow">About Open Shelves</p><h1>A reader, not another corpus mirror.</h1><p class="dek">Open Shelves is a static interface for exploring Harvard Institutional Books 1.0 through Hugging Face's official gated APIs.</p><h2>How access works</h2><p>Every visitor accepts the publisher's terms on Hugging Face and signs in using OAuth. Open Shelves never embeds a repository token, never publishes metadata shards, and never republishes the OCR corpus in its Pages artifact.</p><h2>What the browser does</h2><p>Browsing requests small slices from the official metadata dataset. Opening a volume requests its corresponding row from the official OCR dataset and renders one page at a time in the browser.</p><h2>Independence</h2><p>This project is not operated by Harvard, the Institutional Data Initiative, Google, HathiTrust, or Hugging Face.</p></article>`
 }));
 
-await output('about/index.html', shell({ title: 'About', body: `<article class="reader"><h1>Built for responsible visibility</h1><p>Open Shelves is a static, community-owned reading and discovery interface. It does not treat “available online” as equivalent to “safe to republish”.</p><h2>Two layers</h2><p>The readable library contains complete texts with book-level provenance. The Harvard discovery layer exposes metadata for a much larger corpus while keeping the gated OCR release at its official source.</p><h2>Admission policy</h2><p>For named literary authors, the automated baseline requires every author to have died at least 71 years before the build year. Contributors must also record the exact source, retrieval date, and legal basis. Translations, illustrations, introductions, and modern typography require separate review.</p></article>` }));
-
-const searchIndex = books.map(({ slug,title,authors,subjects,description }) => ({ slug,title,authors:authors.map(a=>a.name),subjects,description }));
-await output('assets/search-index.json', JSON.stringify(searchIndex));
-console.log(`Built ${books.length} readable book(s) into ${path.join(root, 'dist')}`);
+console.log(`Built the Harvard-first Open Shelves site into ${path.join(root, 'dist')}`);
