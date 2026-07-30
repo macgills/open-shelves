@@ -4,6 +4,7 @@ const ocrDataset = 'institutional/institutional-books-1.0';
 const datasetsApi = 'https://datasets-server.huggingface.co';
 const tokenKey = 'open-shelves-hf-token';
 const pageSize = 24;
+const collectionRows = 983004;
 
 const termsConfirmed = document.querySelector('#terms-confirmed');
 const signIn = document.querySelector('#hf-sign-in');
@@ -30,7 +31,7 @@ const nextReaderPage = document.querySelector('#next-reader-page');
 const closeReader = document.querySelector('#close-reader');
 
 let offset = 0;
-let totalRows = 983004;
+let totalRows = collectionRows;
 let currentQuery = '';
 let metadataSplit;
 let ocrSplit;
@@ -162,27 +163,28 @@ const renderRows = payload => {
   status.textContent = `${first.toLocaleString()}–${last.toLocaleString()} of ${totalRows.toLocaleString()} volumes${searchLabel}${payload.partial ? ' (Hugging Face returned a partial index)' : ''}.`;
   for (const button of previousButtons) button.disabled = offset === 0;
   for (const button of nextButtons) button.disabled = rows.length < pageSize || offset + rows.length >= totalRows;
-}
+};
 
 const loadShelf = async () => {
   setBusy(true);
   status.textContent = currentQuery ? 'Searching the official metadata dataset…' : 'Loading a shelf from the official metadata dataset…';
+  let payload;
   try {
     metadataSplit ??= await resolveSplit(metadataDataset);
     const endpoint = currentQuery ? 'search' : 'rows';
-    const payload = await api(endpoint, metadataDataset, {
+    payload = await api(endpoint, metadataDataset, {
       ...metadataSplit,
       offset,
       length: pageSize,
       ...(currentQuery ? { query: currentQuery } : {})
     });
-    renderRows(payload);
   } catch (error) {
     status.textContent = error.message;
     results.replaceChildren();
   } finally {
     setBusy(false);
   }
+  if (payload) renderRows(payload);
 };
 
 const fetchOcrRow = async (rowIndex, barcode) => {
@@ -255,6 +257,7 @@ clearSearch?.addEventListener('click', () => {
   input.value = '';
   currentQuery = '';
   offset = 0;
+  totalRows = collectionRows;
   loadShelf();
 });
 for (const button of previousButtons) button?.addEventListener('click', () => { offset = Math.max(0, offset - pageSize); loadShelf(); });
@@ -262,7 +265,8 @@ for (const button of nextButtons) button?.addEventListener('click', () => { offs
 randomPage?.addEventListener('click', () => {
   currentQuery = '';
   input.value = '';
-  const pages = Math.max(1, Math.floor(totalRows / pageSize));
+  totalRows = collectionRows;
+  const pages = Math.max(1, Math.floor(collectionRows / pageSize));
   offset = Math.floor(Math.random() * pages) * pageSize;
   loadShelf();
 });
@@ -285,8 +289,11 @@ const initialise = async () => {
   }
   updateAuthUi(true);
   await loadShelf();
-  const deepLink = Number(new URL(location.href).searchParams.get('book'));
-  if (Number.isInteger(deepLink) && deepLink >= 0) await openBook(deepLink);
+  const bookParam = new URL(location.href).searchParams.get('book');
+  if (bookParam !== null) {
+    const deepLink = Number(bookParam);
+    if (Number.isInteger(deepLink) && deepLink >= 0) await openBook(deepLink);
+  }
 };
 
 initialise();
