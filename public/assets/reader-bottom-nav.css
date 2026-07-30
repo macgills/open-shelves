@@ -1,0 +1,22 @@
+.reader-controls-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: .75rem;
+  width: min(100%, var(--reader-width));
+  margin: 0 auto 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--reader-border);
+}
+
+.reader-controls-bottom button:first-child { justify-self: start; }
+.reader-controls-bottom button:last-child { justify-self: end; }
+
+@media (max-width: 760px) {
+  .reader-controls-bottom {
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 1rem 0 0;
+  }
+
+  .reader-controls-bottom button { width: 100%; }
+}
