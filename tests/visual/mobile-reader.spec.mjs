@@ -106,6 +106,7 @@ test('next-page navigation is available after scrolling through a long page', as
   await stageReader(page, longSampleText);
   const dialog = page.locator('#ocr-reader');
   await dialog.evaluate(node => { node.scrollTop = node.scrollHeight; });
+  await page.waitForTimeout(50);
   await expect(page.locator('#next-reader-page-bottom')).toBeInViewport();
   await expect(page.locator('#next-reader-page-bottom')).toBeEnabled();
   await page.screenshot({
