@@ -1,0 +1,21 @@
+#ocr-reader .reader-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+#reader-page[aria-busy='true'] {
+  flex: 1 1 45vh;
+  width: min(100%, var(--reader-width));
+  min-height: 45vh;
+}
+
+#reader-page[aria-busy='true'] + .provenance {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  #reader-page[aria-busy='true'] {
+    width: 100%;
+    min-height: 0;
+  }
+}
