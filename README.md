@@ -33,11 +33,13 @@ If the visitor has not been granted access, the official API rejects the request
 
 ## OAuth
 
-Open Shelves is a public OAuth client using PKCE. Its Client ID Metadata Document is served at:
+Open Shelves is a public OAuth client using PKCE. Its Client ID Metadata Document is served as JSON at:
 
 ```text
-https://macgills.github.io/open-shelves/.well-known/oauth-cimd
+https://macgills.github.io/open-shelves/oauth-cimd.json
 ```
+
+The `.json` suffix is intentional. GitHub Pages derives response MIME types from file extensions and does not support per-file response headers, while a CIMD document must be returned as JSON.
 
 The callback is:
 
@@ -51,7 +53,7 @@ Requested scopes:
 openid profile gated-repos
 ```
 
-There is no client secret in the repository or browser bundle.
+There is no client secret in the repository or browser bundle. The production build binds both OAuth initiation and callback exchange to the same exact client ID URL.
 
 The former `HF_TOKEN` GitHub Actions secret is no longer used and can be deleted from the repository settings. Build-time access was removed because it would create a redistributed metadata index; the current design leaves dataset access with each authorised visitor.
 
@@ -88,13 +90,13 @@ The production OAuth metadata is tied to the GitHub Pages URL. The site can be b
 ## Repository layout
 
 ```text
-scripts/build.mjs                         Static page generator
+scripts/build.mjs                         Static page generator and production OAuth binding
 scripts/serve.mjs                         Local static server
 public/assets/harvard.js                  Browser, search, OAuth initiation, OCR reader
 public/assets/oauth-callback.js           PKCE token exchange
 public/oauth/callback/huggingface/        OAuth callback page
-public/.well-known/oauth-cimd             Public OAuth client metadata
-.github/workflows/pages.yml               Test, build, and Pages deployment
+public/oauth-cimd.json                    Public OAuth client metadata
+.github/workflows/pages.yml               Test, build, verification, and Pages deployment
 ```
 
 ## Security and data handling
