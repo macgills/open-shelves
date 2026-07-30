@@ -1,0 +1,66 @@
+.token-access {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.token-access summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-family: system-ui, sans-serif;
+  font-weight: 750;
+}
+
+.token-access p {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+.token-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .7rem;
+  align-items: end;
+  margin-top: .9rem;
+}
+
+.token-form label {
+  display: grid;
+  gap: .4rem;
+  min-width: 0;
+  font-family: system-ui, sans-serif;
+  font-weight: 700;
+}
+
+.token-form input {
+  min-width: 0;
+  padding: .8rem .9rem;
+  border: 1px solid var(--line);
+  border-radius: .45rem;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font: 500 1rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.token-form input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+#hf-token-status {
+  min-height: 1.4em;
+  margin: .7rem 0 0;
+  color: var(--muted);
+  font: 650 .85rem/1.45 system-ui, sans-serif;
+}
+
+@media (max-width: 620px) {
+  .token-form {
+    grid-template-columns: 1fr;
+  }
+
+  .token-form button {
+    width: 100%;
+  }
+}
