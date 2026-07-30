@@ -22,7 +22,7 @@ for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
 const shell = ({ title, body, description = 'Browse and read Harvard Institutional Books with your own gated access.', scripts = '' }) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="${escapeHtml(description)}"><meta name="color-scheme" content="light dark">
-<title>${escapeHtml(title)} · Open Shelves</title><link rel="stylesheet" href="${basePath}/assets/site.css"><link rel="stylesheet" href="${basePath}/assets/reader.css">${scripts}</head>
+<title>${escapeHtml(title)} · Open Shelves</title><link rel="stylesheet" href="${basePath}/assets/site.css"><link rel="stylesheet" href="${basePath}/assets/reader.css"><link rel="stylesheet" href="${basePath}/assets/reader-layout.css">${scripts}</head>
 <body><header class="site-header"><a class="brand" href="${basePath}/"><span>Open Shelves</span><small>Harvard Institutional Books</small></a><nav><a href="${basePath}/">Browse</a><a href="${basePath}/about/">About</a></nav></header>
 <main>${body}</main><footer><p>Open Shelves is an independent interface. Dataset access and use remain governed by the Institutional Data Initiative and Hugging Face.</p></footer></body></html>`;
 
@@ -36,7 +36,7 @@ const collection = `<section id="collection-intro" class="hero"><p class="eyebro
 
 const page = shell({
   title: 'Browse Harvard Institutional Books',
-  scripts: `<script type="module" src="${basePath}/assets/harvard.js"></script>`,
+  scripts: `<script type="module" src="${basePath}/assets/harvard.js"></script><script type="module" src="${basePath}/assets/reader-behaviour.js"></script>`,
   body: collection
 });
 
