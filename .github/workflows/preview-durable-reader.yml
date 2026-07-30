@@ -15,10 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-preview:
-    environment:
-      name: preview-durable-reader
-      url: https://macgills.github.io/open-shelves/previews/durable-reader/
+  build-preview:
     runs-on: ubuntu-latest
     steps:
       - name: Check out preview branch
@@ -52,14 +49,18 @@ jobs:
           npm run build
 
       - name: Mount preview beneath production
+        env:
+          PREVIEW_SHA: ${{ github.sha }}
         run: |
           mkdir -p production/dist/previews/durable-reader
           cp -a preview/dist/. production/dist/previews/durable-reader/
           test -f production/dist/index.html
           test -f production/dist/previews/durable-reader/index.html
           test -f production/dist/previews/durable-reader/oauth-cimd.json
-          grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js' production/dist/previews/durable-reader/index.html
+          test -f production/dist/previews/durable-reader/preview-build.json
+          grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js?v=' production/dist/previews/durable-reader/index.html
           grep -Fq 'https://macgills.github.io/open-shelves/previews/durable-reader/oauth-cimd.json' production/dist/previews/durable-reader/oauth-cimd.json
+          node -e "const fs=require('node:fs'); const m=JSON.parse(fs.readFileSync('production/dist/previews/durable-reader/preview-build.json')); if (m.sha !== process.env.PREVIEW_SHA) { console.error(m); process.exit(1); }"
 
       - name: Route nested preview URLs
         run: |
@@ -82,6 +83,13 @@ jobs:
         with:
           path: production/dist
 
+  deploy-preview:
+    needs: build-preview
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy branch preview
         id: deployment
         uses: actions/deploy-pages@v4
