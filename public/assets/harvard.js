@@ -4,6 +4,7 @@ const ocrDataset = 'institutional/institutional-books-1.0';
 const datasetsApi = 'https://datasets-server.huggingface.co';
 const tokenKey = 'open-shelves-hf-token';
 const consentKey = 'open-shelves-hf-consent';
+const recentKey = 'open-shelves-recent-books';
 const pageSize = 24;
 const collectionRows = 983004;
 
@@ -22,12 +23,18 @@ const status = document.querySelector('#harvard-status');
 const previousButtons = [document.querySelector('#previous-page'), document.querySelector('#previous-page-bottom')];
 const nextButtons = [document.querySelector('#next-page'), document.querySelector('#next-page-bottom')];
 const randomPage = document.querySelector('#random-page');
+const recentSection = document.querySelector('#recent-section');
+const recentResults = document.querySelector('#recent-results');
+const clearRecent = document.querySelector('#clear-recent');
 const reader = document.querySelector('#ocr-reader');
 const readerTitle = document.querySelector('#reader-title');
 const readerAuthor = document.querySelector('#reader-author');
 const readerMeta = document.querySelector('#reader-meta');
 const readerStatus = document.querySelector('#reader-status');
+const readerChrome = document.querySelector('#reader-chrome');
 const readerControls = document.querySelector('#reader-controls');
+const readerProgress = document.querySelector('#reader-progress');
+const readerProgressFill = document.querySelector('#reader-progress-fill');
 const readerPage = document.querySelector('#reader-page');
 const readerPageNumber = document.querySelector('#reader-page-number');
 const readerPageCount = document.querySelector('#reader-page-count');
@@ -57,6 +64,21 @@ const rememberConsent = () => {
     localStorage.setItem(consentKey, 'accepted');
   } catch {
     // Browsing can still continue for this session when persistent storage is unavailable.
+  }
+};
+const readRecent = () => {
+  try {
+    const value = JSON.parse(localStorage.getItem(recentKey) ?? '[]');
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+};
+const writeRecent = books => {
+  try {
+    localStorage.setItem(recentKey, JSON.stringify(books));
+  } catch {
+    // Recent books are a progressive enhancement.
   }
 };
 
@@ -120,6 +142,7 @@ const beginOAuth = async () => {
 
 const updateAuthUi = connected => {
   const consented = hasConsent();
+  document.body.classList.toggle('returning-user', consented || connected);
   accessPanel.hidden = connected;
   accessPanel.classList.toggle('is-compact', consented && !connected);
   browser.hidden = !connected;
@@ -130,14 +153,17 @@ const updateAuthUi = connected => {
 
   if (connected) {
     authStatus.textContent = '';
+    renderRecent();
   } else if (consented) {
     authStatus.textContent = 'Your terms acknowledgement is saved on this device. Sign in to browse.';
     signIn.textContent = 'Sign in with Hugging Face';
     results.replaceChildren();
+    recentSection.hidden = true;
   } else {
     authStatus.textContent = 'Not connected.';
     signIn.textContent = 'Continue with Hugging Face';
     results.replaceChildren();
+    recentSection.hidden = true;
   }
 };
 
@@ -147,60 +173,118 @@ const text = (value, fallback = '') => {
   return value == null || value === '' ? fallback : String(value);
 };
 
+const hash = value => {
+  let result = 0;
+  for (const character of String(value)) result = ((result << 5) - result + character.charCodeAt(0)) | 0;
+  return Math.abs(result);
+};
+
+const coverPalette = record => {
+  const seed = text(record.barcode_src, `${record.title_src}-${record.author_src}`);
+  const value = hash(seed);
+  return { hue: value % 360, shift: 22 + (value % 38) };
+};
+
+const createCover = (record, compact = false) => {
+  const cover = document.createElement('div');
+  cover.className = `book-cover${compact ? ' compact' : ''}`;
+  const palette = coverPalette(record);
+  cover.style.setProperty('--cover-hue', String(palette.hue));
+  cover.style.setProperty('--cover-shift', String(palette.shift));
+  cover.setAttribute('aria-hidden', 'true');
+
+  const frame = document.createElement('div');
+  frame.className = 'cover-frame';
+  const title = document.createElement('strong');
+  title.textContent = text(record.title_src, 'Untitled volume');
+  const author = document.createElement('span');
+  author.textContent = text(record.author_src, 'Unknown author');
+  const year = document.createElement('small');
+  year.textContent = text(record.date1_src, 'Undated');
+  frame.append(title, author, year);
+  cover.append(frame);
+  return cover;
+};
+
 const createDetail = (label, value) => {
   const span = document.createElement('span');
   span.textContent = `${label}: ${value}`;
   return span;
 };
 
+const createBookCard = (rowIndex, record, compact = false) => {
+  const article = document.createElement('article');
+  article.className = `book-card${compact ? ' compact' : ''}`;
+
+  const cover = createCover(record, compact);
+  const content = document.createElement('div');
+  content.className = 'book-card-content';
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = `${text(record.language_src, text(record.language_gen, 'und')).toUpperCase()} · ${text(record.date1_src, 'Undated')}`;
+  const heading = document.createElement('h3');
+  heading.textContent = text(record.title_src, 'Untitled volume');
+  const author = document.createElement('p');
+  author.className = 'book-author';
+  author.textContent = text(record.author_src, 'Unknown author');
+  const details = document.createElement('p');
+  details.className = 'card-details';
+  details.append(
+    createDetail('Pages', text(record.page_count_src, 'unknown')),
+    createDetail('Subject', text(record.topic_or_subject_gen, text(record.topic_or_subject_src, 'uncatalogued')))
+  );
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = compact ? 'Open again' : 'Open book';
+  button.addEventListener('click', () => openBook(rowIndex, record));
+  content.append(eyebrow, heading, author, details, button);
+  article.append(cover, content);
+  return article;
+};
+
+const serialiseRecent = (rowIndex, record) => ({
+  rowIndex,
+  record: {
+    title_src: text(record.title_src, 'Untitled volume'),
+    author_src: text(record.author_src, 'Unknown author'),
+    language_src: text(record.language_src, text(record.language_gen, 'und')),
+    date1_src: text(record.date1_src, 'Undated'),
+    page_count_src: text(record.page_count_src, 'unknown'),
+    topic_or_subject_gen: text(record.topic_or_subject_gen, text(record.topic_or_subject_src, 'uncatalogued')),
+    barcode_src: text(record.barcode_src)
+  }
+});
+
+const rememberRecent = (rowIndex, record) => {
+  const next = [serialiseRecent(rowIndex, record), ...readRecent().filter(item => item.rowIndex !== rowIndex)].slice(0, 8);
+  writeRecent(next);
+};
+
+function renderRecent() {
+  const books = readRecent();
+  recentResults.replaceChildren();
+  recentSection.hidden = books.length === 0 || !token();
+  for (const item of books) recentResults.append(createBookCard(item.rowIndex, item.record, true));
+}
+
 const renderRows = payload => {
   results.replaceChildren();
   const rows = payload.rows ?? [];
   totalRows = payload.num_rows_total ?? totalRows;
-
-  for (const wrapper of rows) {
-    const record = wrapper.row ?? {};
-    const article = document.createElement('article');
-    article.className = 'book-card';
-
-    const eyebrow = document.createElement('p');
-    eyebrow.className = 'eyebrow';
-    eyebrow.textContent = `${text(record.language_src, text(record.language_gen, 'und')).toUpperCase()} · ${text(record.date1_src, 'Undated')}`;
-
-    const heading = document.createElement('h3');
-    heading.textContent = text(record.title_src, 'Untitled volume');
-
-    const author = document.createElement('p');
-    author.textContent = text(record.author_src, 'Unknown author');
-
-    const details = document.createElement('p');
-    details.className = 'card-details';
-    details.append(
-      createDetail('Pages', text(record.page_count_src, 'unknown')),
-      createDetail('Topic', text(record.topic_or_subject_gen, text(record.topic_or_subject_src, 'uncatalogued'))),
-      createDetail('Barcode', text(record.barcode_src, 'unknown'))
-    );
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = 'Read OCR';
-    button.addEventListener('click', () => openBook(wrapper.row_idx, record));
-
-    article.append(eyebrow, heading, author, details, button);
-    results.append(article);
-  }
+  for (const wrapper of rows) results.append(createBookCard(wrapper.row_idx, wrapper.row ?? {}));
 
   const first = rows.length ? offset + 1 : 0;
   const last = offset + rows.length;
-  const searchLabel = currentQuery ? ` for “${currentQuery}”` : '';
-  status.textContent = `${first.toLocaleString()}–${last.toLocaleString()} of ${totalRows.toLocaleString()} volumes${searchLabel}${payload.partial ? ' (Hugging Face returned a partial index)' : ''}.`;
+  status.textContent = currentQuery
+    ? `${totalRows.toLocaleString()} volumes found for “${currentQuery}” · showing ${first.toLocaleString()}–${last.toLocaleString()}.`
+    : `Shelf ${first.toLocaleString()}–${last.toLocaleString()} of ${totalRows.toLocaleString()} volumes.`;
   for (const button of previousButtons) button.disabled = offset === 0;
   for (const button of nextButtons) button.disabled = rows.length < pageSize || offset + rows.length >= totalRows;
 };
 
 const loadShelf = async () => {
   setBusy(true);
-  status.textContent = currentQuery ? 'Searching the official metadata dataset…' : 'Loading a shelf from the official metadata dataset…';
+  status.textContent = currentQuery ? 'Searching the catalogue…' : 'Opening the next shelf…';
   let payload;
   try {
     metadataSplit ??= await resolveSplit(metadataDataset);
@@ -268,7 +352,7 @@ const showReaderLoading = metadata => {
   readerMeta.textContent = `${text(metadata.language_src, 'und').toUpperCase()} · ${text(metadata.date1_src, 'Undated')}`;
   readerStatus.hidden = false;
   readerStatus.textContent = 'Fetching page-level OCR from the official dataset…';
-  readerControls.hidden = true;
+  readerChrome.hidden = true;
   readerPage.setAttribute('aria-busy', 'true');
   readerPage.textContent = 'Loading OCR…';
   ensureReaderOpen();
@@ -277,10 +361,15 @@ const showReaderLoading = metadata => {
 const showReaderPage = index => {
   if (!currentPages.length) return;
   currentPageIndex = Math.max(0, Math.min(index, currentPages.length - 1));
+  const page = currentPageIndex + 1;
+  const percentage = (page / currentPages.length) * 100;
   readerPage.removeAttribute('aria-busy');
   readerPage.textContent = text(currentPages[currentPageIndex], '[No OCR text was supplied for this page.]');
-  readerPageNumber.value = String(currentPageIndex + 1);
+  readerPageNumber.value = String(page);
   readerPageCount.textContent = currentPages.length.toLocaleString();
+  readerProgress.setAttribute('aria-valuemax', String(currentPages.length));
+  readerProgress.setAttribute('aria-valuenow', String(page));
+  readerProgressFill.style.width = `${percentage}%`;
   previousReaderPage.disabled = currentPageIndex === 0;
   nextReaderPage.disabled = currentPageIndex === currentPages.length - 1;
   readerPage.scrollTop = 0;
@@ -296,10 +385,13 @@ const openBook = async (rowIndex, metadata = {}) => {
 
     readerTitle.textContent = text(record.title_src, text(metadata.title_src, 'Untitled volume'));
     readerAuthor.textContent = text(record.author_src, text(metadata.author_src, 'Unknown author'));
-    readerMeta.textContent = `${text(record.language_src, 'und').toUpperCase()} · ${text(record.date1_src, 'Undated')} · ${currentPages.length.toLocaleString()} OCR pages · ${text(record.barcode_src, 'No barcode')}`;
+    readerMeta.textContent = `${text(record.language_src, 'und').toUpperCase()} · ${text(record.date1_src, 'Undated')} · ${currentPages.length.toLocaleString()} OCR pages`;
     readerStatus.hidden = true;
+    readerChrome.hidden = false;
     readerControls.hidden = false;
     showReaderPage(0);
+    rememberRecent(rowIndex, { ...metadata, ...record });
+    renderRecent();
 
     const url = new URL(location.href);
     url.searchParams.set('book', String(rowIndex));
@@ -307,7 +399,7 @@ const openBook = async (rowIndex, metadata = {}) => {
   } catch (error) {
     readerStatus.hidden = false;
     readerStatus.textContent = 'The selected volume could not be loaded.';
-    readerControls.hidden = true;
+    readerChrome.hidden = true;
     readerPage.removeAttribute('aria-busy');
     readerPage.textContent = error.message;
   }
@@ -322,6 +414,10 @@ signIn?.addEventListener('click', beginOAuth);
 signOut?.addEventListener('click', () => {
   sessionStorage.removeItem(tokenKey);
   updateAuthUi(false);
+});
+clearRecent?.addEventListener('click', () => {
+  writeRecent([]);
+  renderRecent();
 });
 
 form?.addEventListener('submit', event => {
