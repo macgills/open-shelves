@@ -1,0 +1,12 @@
+{
+  "client_id": "https://macgills.github.io/open-shelves/oauth-cimd.json",
+  "client_name": "Open Shelves",
+  "redirect_uris": [
+    "https://macgills.github.io/open-shelves/oauth/callback/huggingface/"
+  ],
+  "token_endpoint_auth_method": "none",
+  "grant_types": ["authorization_code"],
+  "response_types": ["code"],
+  "application_type": "web",
+  "client_uri": "https://macgills.github.io/open-shelves/"
+}
