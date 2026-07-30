@@ -1,0 +1,42 @@
+name: Visual regression
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/durable-reader
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-reader:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run source tests
+        run: npm test
+
+      - name: Capture mobile reader screenshots
+        run: npm run test:visual
+
+      - name: Upload mobile reader screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-reader-screenshots-${{ github.event.pull_request.number || github.run_number }}-${{ github.sha }}
+          path: test-results/visual/**/*.png
+          if-no-files-found: error
+          retention-days: 14
