@@ -21,13 +21,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
-      HF_OAUTH_CLIENT_ID: ${{ vars.HF_OAUTH_CLIENT_ID }}
+      HF_OAUTH_CLIENT_ID: ${{ secrets.HF_OAUTH_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Require registered OAuth client
+        run: test -n "$HF_OAUTH_CLIENT_ID"
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -61,13 +64,8 @@ jobs:
           grep -Fq 'hf-oauth-client-id' dist/index.html
           ! grep -Fq 'oauth-cimd' dist/assets/harvard.js
           ! grep -Fq 'oauth-cimd' dist/assets/oauth-callback.js
-          if [ -n "$HF_OAUTH_CLIENT_ID" ]; then
-            grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/harvard.js
-            grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/oauth-callback.js
-          else
-            grep -Fq 'missing-hf-oauth-client-id' dist/assets/harvard.js
-            grep -Fq 'missing-hf-oauth-client-id' dist/assets/oauth-callback.js
-          fi
+          grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/harvard.js
+          grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/oauth-callback.js
 
       - uses: actions/configure-pages@v5
 
