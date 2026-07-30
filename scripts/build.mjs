@@ -3,20 +3,17 @@ import path from 'node:path';
 import { escapeHtml, output, resetDist, root } from './lib.mjs';
 
 const basePath = '/open-shelves';
-const legacyOAuthClientPath = '/.well-known/oauth-cimd';
-const oauthClientPath = '/oauth-cimd.json';
+const oauthClientExpression = '`${location.origin}${basePath}/.well-known/oauth-cimd`';
+const oauthClientId = process.env.HF_OAUTH_CLIENT_ID?.trim() || 'missing-hf-oauth-client-id';
 await resetDist();
 
-// GitHub Pages derives MIME types from file extensions and cannot set a custom
-// Content-Type for the extensionless CIMD path. Rewrite the stable path suffix
-// in both browser assets so this also works if the Pages base path changes.
 for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
   const target = path.join(root, 'dist', relativePath);
   const source = await readFile(target, 'utf8');
-  if (!source.includes(legacyOAuthClientPath)) {
-    throw new Error(`${relativePath} does not contain the expected OAuth client path`);
+  if (!source.includes(oauthClientExpression)) {
+    throw new Error(`${relativePath} does not contain the expected OAuth client expression`);
   }
-  await writeFile(target, source.replaceAll(legacyOAuthClientPath, oauthClientPath));
+  await writeFile(target, source.replaceAll(oauthClientExpression, JSON.stringify(oauthClientId)));
 }
 
 const shell = ({ title, body, description = 'Browse and read Harvard Institutional Books with your own gated access.', scripts = '' }) => `<!doctype html>
@@ -48,7 +45,7 @@ await output('404.html', page);
 await output('harvard/index.html', page);
 await output('about/index.html', shell({
   title: 'About',
-  body: `<article class="reader"><p class="eyebrow">About Open Shelves</p><h1>A reader, not another corpus mirror.</h1><p class="dek">Open Shelves is a static interface for exploring Harvard Institutional Books 1.0 through Hugging Face's official gated APIs.</p><h2>How access works</h2><p>Every visitor accepts the publisher's terms on Hugging Face and signs in using OAuth. Open Shelves never embeds a repository token, never publishes metadata shards, and never republishes the full text collection in its Pages artifact.</p><h2>What the reader does</h2><p>Opening a volume loads text that was automatically read from images of the scanned pages. The default readable view tidies mechanical line wrapping while preserving the supplied wording. An exact transcription view is always available.</p><h2>Durable links</h2><p>Books and pages use barcode-based URLs so a reading position can be bookmarked, shared and restored independently of dataset row ordering.</p><h2>Independence</h2><p>This project is not operated by Harvard, the Institutional Data Initiative, Google, HathiTrust, or Hugging Face.</p></article>`
+  body: `<article class="reader"><p class="eyebrow">About Open Shelves</p><h1>A reader, not another corpus mirror.</h1><p class="dek">Open Shelves is a static interface for exploring Harvard Institutional Books 1.0 through Hugging Face's official gated APIs.</p><h2>How access works</h2><p>Every visitor accepts the publisher's terms on Hugging Face and signs in using a registered public OAuth application with PKCE. Open Shelves never embeds a client secret, repository token, metadata shard, or full-text collection in its Pages artifact.</p><h2>What the reader does</h2><p>Opening a volume loads text that was automatically read from images of the scanned pages. The default readable view tidies mechanical line wrapping while preserving the supplied wording. An exact transcription view is always available.</p><h2>Durable links</h2><p>Books and pages use barcode-based URLs so a reading position can be bookmarked, shared and restored independently of dataset row ordering.</p><h2>Independence</h2><p>This project is not operated by Harvard, the Institutional Data Initiative, Google, HathiTrust, or Hugging Face.</p></article>`
 }));
 
 console.log(`Built the Harvard-first Open Shelves site into ${path.join(root, 'dist')}`);
