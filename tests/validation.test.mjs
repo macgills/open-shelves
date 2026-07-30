@@ -9,13 +9,26 @@ test('escapes generated page content', () => {
   assert.equal(escapeHtml(`<script a="b">&'</script>`), '&lt;script a=&quot;b&quot;&gt;&amp;&#39;&lt;/script&gt;');
 });
 
-test('build injects a registered public Hugging Face OAuth client', async () => {
+test('build supports registered OAuth without requiring it to deploy', async () => {
   const build = await read('scripts/build.mjs');
   assert.match(build, /HF_OAUTH_CLIENT_ID/);
+  assert.match(build, /missing-hf-oauth-client-id/);
   assert.match(build, /JSON\.stringify\(oauthClientId\)/);
-  assert.match(build, /assets\/harvard\.js/);
-  assert.match(build, /assets\/oauth-callback\.js/);
+  assert.match(build, /name="hf-oauth-client-id"/);
   assert.doesNotMatch(build, /oauth-cimd\.json/);
+});
+
+test('provides a validated session-only token fallback', async () => {
+  const build = await read('scripts/build.mjs');
+  const fallback = await read('public/assets/auth-fallback.js');
+  const app = await read('public/assets/app.js');
+  assert.match(build, /id="hf-token-form"/);
+  assert.match(build, /type="password"/);
+  assert.match(fallback, /sessionStorage\.setItem\(tokenKey, accessToken\)/);
+  assert.match(fallback, /datasets-server\.huggingface\.co/);
+  assert.match(fallback, /That token does not have access/);
+  assert.doesNotMatch(fallback, /localStorage\.setItem\([^\n]*token/i);
+  assert.match(app, /auth-fallback\.js[\s\S]*harvard\.js/);
 });
 
 test('requests only gated read access for dataset browsing', async () => {
@@ -47,7 +60,6 @@ test('opens the reader with an in-modal loading state and locks background scrol
   assert.match(browser, /reader\.showModal\(\)/);
   assert.match(browser, /document\.body\.classList\.add\('reader-open'\)/);
   assert.match(browser, /unlockDocumentScroll\(\)/);
-  assert.match(browser, /Fetching page-level OCR from the official dataset/);
 });
 
 test('presents scanned text in readable and exact views', async () => {
@@ -99,44 +111,45 @@ test('reader exposes visual page progress', async () => {
   assert.match(browser, /readerProgress\.setAttribute\('aria-valuenow'/);
 });
 
-test('generated markup contains durable reader controls and a 404 app shell', async () => {
+test('generated markup contains durable reader controls and access fallback', async () => {
   const build = await read('scripts/build.mjs');
   assert.match(build, /id="recent-section"/);
   assert.match(build, /id="reader-progress"/);
   assert.match(build, /id="copy-page-link"/);
   assert.match(build, /id="reader-theme"/);
-  assert.match(build, /id="reader-font-size"/);
+  assert.match(build, /id="hf-token-form"/);
+  assert.match(build, /assets\/auth\.css/);
   assert.match(build, /output\('404\.html', page\)/);
-  assert.match(build, /assets\/reader\.css/);
-  assert.match(build, /assets\/readable-text\.css/);
 });
 
 test('styles include covers, compact returning state and full-screen mobile reader', async () => {
   const styles = await read('public/assets/site.css');
   const readerStyles = await read('public/assets/reader.css');
+  const authStyles = await read('public/assets/auth.css');
   assert.match(styles, /\.book-cover/);
   assert.match(styles, /\.returning-user \.stats/);
   assert.match(styles, /#ocr-reader \{ width: 100vw; height: 100dvh/);
   assert.match(readerStyles, /data-reader-theme='sepia'/);
   assert.match(readerStyles, /--reader-font-size/);
-  assert.match(readerStyles, /\.reader-settings-grid/);
+  assert.match(authStyles, /\.token-form/);
 });
 
-test('production and preview workflows require the public client ID', async () => {
+test('production and preview workflows deploy without an OAuth repository variable', async () => {
   const production = await read('.github/workflows/pages.yml');
   const preview = await read('.github/workflows/preview-durable-reader.yml');
   for (const workflow of [production, preview]) {
     assert.match(workflow, /vars\.HF_OAUTH_CLIENT_ID/);
-    assert.match(workflow, /Require registered OAuth client/);
+    assert.doesNotMatch(workflow, /Require registered OAuth client/);
     assert.match(workflow, /! grep -Fq 'oauth-cimd'/);
   }
+  assert.match(preview, /if-no-files-found: warn/);
 });
 
 test('branch preview rewrites app URLs beneath the preview path', async () => {
   const preview = await read('scripts/build-preview.mjs');
   const workflow = await read('.github/workflows/preview-durable-reader.yml');
   assert.match(preview, /previews\/\$\{previewSlug\}/);
-  assert.match(preview, /registered Hugging Face OAuth client/);
+  assert.match(preview, /hf-token-form/);
   assert.match(workflow, /production\/dist\/previews\/durable-reader/);
   assert.match(workflow, /ref: main/);
 });
