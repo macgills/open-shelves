@@ -28,9 +28,20 @@ jobs:
           test -f dist/.well-known/oauth-cimd
           node -e "const fs=require('node:fs'); const p='dist/.well-known/oauth-cimd'; const m=JSON.parse(fs.readFileSync(p,'utf8')); if (!m.client_id?.endsWith('/.well-known/oauth-cimd') || !m.redirect_uris?.length) process.exit(1)"
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - name: Package Pages artifact with hidden paths
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory dist \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            .
+          tar -tf "$RUNNER_TEMP/artifact.tar" | grep -Eq '^\./\.well-known/oauth-cimd$'
+      - name: Upload Pages artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: dist
-          include-hidden-files: true
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
       - id: deployment
         uses: actions/deploy-pages@v4
