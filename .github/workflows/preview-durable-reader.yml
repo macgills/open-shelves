@@ -17,7 +17,7 @@ concurrency:
 jobs:
   deploy-preview:
     environment:
-      name: github-pages
+      name: preview-durable-reader
       url: https://macgills.github.io/open-shelves/previews/durable-reader/
     runs-on: ubuntu-latest
     steps:
