@@ -3,9 +3,12 @@ const metadataDataset = 'institutional/institutional-books-1.0-metadata';
 const ocrDataset = 'institutional/institutional-books-1.0';
 const datasetsApi = 'https://datasets-server.huggingface.co';
 const tokenKey = 'open-shelves-hf-token';
+const consentKey = 'open-shelves-hf-consent';
 const pageSize = 24;
 const collectionRows = 983004;
 
+const accessPanel = document.querySelector('#access-panel');
+const consentIntroduction = document.querySelector('#consent-introduction');
 const termsConfirmed = document.querySelector('#terms-confirmed');
 const signIn = document.querySelector('#hf-sign-in');
 const signOut = document.querySelector('#hf-sign-out');
@@ -23,6 +26,8 @@ const reader = document.querySelector('#ocr-reader');
 const readerTitle = document.querySelector('#reader-title');
 const readerAuthor = document.querySelector('#reader-author');
 const readerMeta = document.querySelector('#reader-meta');
+const readerStatus = document.querySelector('#reader-status');
+const readerControls = document.querySelector('#reader-controls');
 const readerPage = document.querySelector('#reader-page');
 const readerPageNumber = document.querySelector('#reader-page-number');
 const readerPageCount = document.querySelector('#reader-page-count');
@@ -37,8 +42,24 @@ let metadataSplit;
 let ocrSplit;
 let currentPages = [];
 let currentPageIndex = 0;
+let lockedScrollY = 0;
 
 const token = () => sessionStorage.getItem(tokenKey);
+const hasConsent = () => {
+  try {
+    return localStorage.getItem(consentKey) === 'accepted';
+  } catch {
+    return false;
+  }
+};
+const rememberConsent = () => {
+  try {
+    localStorage.setItem(consentKey, 'accepted');
+  } catch {
+    // Browsing can still continue for this session when persistent storage is unavailable.
+  }
+};
+
 const setBusy = busy => {
   for (const button of [...previousButtons, ...nextButtons, randomPage, form?.querySelector('button[type="submit"]')].filter(Boolean)) {
     button.disabled = busy;
@@ -69,6 +90,8 @@ const resolveSplit = async dataset => {
 };
 
 const beginOAuth = async () => {
+  if (!hasConsent()) return;
+
   const random = size => {
     const bytes = crypto.getRandomValues(new Uint8Array(size));
     return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
@@ -96,14 +119,24 @@ const beginOAuth = async () => {
 };
 
 const updateAuthUi = connected => {
+  const consented = hasConsent();
+  accessPanel.hidden = connected;
+  accessPanel.classList.toggle('is-compact', consented && !connected);
   browser.hidden = !connected;
   signOut.hidden = !connected;
-  signIn.hidden = connected;
-  termsConfirmed.disabled = connected;
+  consentIntroduction.hidden = consented;
+  termsConfirmed.checked = consented;
+  signIn.disabled = !consented;
+
   if (connected) {
-    authStatus.textContent = 'Connected with gated repository access. The token remains in this tab only.';
+    authStatus.textContent = '';
+  } else if (consented) {
+    authStatus.textContent = 'Your terms acknowledgement is saved on this device. Sign in to browse.';
+    signIn.textContent = 'Sign in with Hugging Face';
+    results.replaceChildren();
   } else {
     authStatus.textContent = 'Not connected.';
+    signIn.textContent = 'Continue with Hugging Face';
     results.replaceChildren();
   }
 };
@@ -206,9 +239,45 @@ const fetchOcrRow = async (rowIndex, barcode) => {
   return fallback;
 };
 
+const lockDocumentScroll = () => {
+  if (document.body.classList.contains('reader-open')) return;
+  lockedScrollY = window.scrollY;
+  document.documentElement.classList.add('reader-open');
+  document.body.classList.add('reader-open');
+  document.body.style.top = `-${lockedScrollY}px`;
+};
+
+const unlockDocumentScroll = () => {
+  if (!document.body.classList.contains('reader-open')) return;
+  document.documentElement.classList.remove('reader-open');
+  document.body.classList.remove('reader-open');
+  document.body.style.top = '';
+  window.scrollTo(0, lockedScrollY);
+};
+
+const ensureReaderOpen = () => {
+  if (reader.open) return;
+  lockDocumentScroll();
+  reader.showModal();
+};
+
+const showReaderLoading = metadata => {
+  currentPages = [];
+  readerTitle.textContent = text(metadata.title_src, 'Loading volume…');
+  readerAuthor.textContent = text(metadata.author_src, '');
+  readerMeta.textContent = `${text(metadata.language_src, 'und').toUpperCase()} · ${text(metadata.date1_src, 'Undated')}`;
+  readerStatus.hidden = false;
+  readerStatus.textContent = 'Fetching page-level OCR from the official dataset…';
+  readerControls.hidden = true;
+  readerPage.setAttribute('aria-busy', 'true');
+  readerPage.textContent = 'Loading OCR…';
+  ensureReaderOpen();
+};
+
 const showReaderPage = index => {
   if (!currentPages.length) return;
   currentPageIndex = Math.max(0, Math.min(index, currentPages.length - 1));
+  readerPage.removeAttribute('aria-busy');
   readerPage.textContent = text(currentPages[currentPageIndex], '[No OCR text was supplied for this page.]');
   readerPageNumber.value = String(currentPageIndex + 1);
   readerPageCount.textContent = currentPages.length.toLocaleString();
@@ -219,7 +288,7 @@ const showReaderPage = index => {
 };
 
 const openBook = async (rowIndex, metadata = {}) => {
-  status.textContent = `Loading OCR for ${text(metadata.title_src, 'the selected volume')}…`;
+  showReaderLoading(metadata);
   try {
     const record = await fetchOcrRow(rowIndex, metadata.barcode_src);
     currentPages = record.text_by_page_gen?.length ? record.text_by_page_gen : record.text_by_page_src ?? [];
@@ -228,19 +297,27 @@ const openBook = async (rowIndex, metadata = {}) => {
     readerTitle.textContent = text(record.title_src, text(metadata.title_src, 'Untitled volume'));
     readerAuthor.textContent = text(record.author_src, text(metadata.author_src, 'Unknown author'));
     readerMeta.textContent = `${text(record.language_src, 'und').toUpperCase()} · ${text(record.date1_src, 'Undated')} · ${currentPages.length.toLocaleString()} OCR pages · ${text(record.barcode_src, 'No barcode')}`;
+    readerStatus.hidden = true;
+    readerControls.hidden = false;
     showReaderPage(0);
-    reader.showModal();
 
     const url = new URL(location.href);
     url.searchParams.set('book', String(rowIndex));
     history.replaceState(null, '', url);
-    status.textContent = 'OCR volume loaded from the official dataset.';
   } catch (error) {
-    status.textContent = error.message;
+    readerStatus.hidden = false;
+    readerStatus.textContent = 'The selected volume could not be loaded.';
+    readerControls.hidden = true;
+    readerPage.removeAttribute('aria-busy');
+    readerPage.textContent = error.message;
   }
 };
 
-termsConfirmed?.addEventListener('change', () => { signIn.disabled = !termsConfirmed.checked; });
+termsConfirmed?.addEventListener('change', () => {
+  if (!termsConfirmed.checked) return;
+  rememberConsent();
+  updateAuthUi(false);
+});
 signIn?.addEventListener('click', beginOAuth);
 signOut?.addEventListener('click', () => {
   sessionStorage.removeItem(tokenKey);
@@ -277,6 +354,7 @@ readerPageNumber?.addEventListener('change', () => showReaderPage(Number(readerP
 closeReader?.addEventListener('click', () => reader.close());
 reader?.addEventListener('close', () => {
   currentPages = [];
+  unlockDocumentScroll();
   const url = new URL(location.href);
   url.searchParams.delete('book');
   history.replaceState(null, '', url);
