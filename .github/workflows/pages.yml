@@ -25,23 +25,13 @@ jobs:
       - run: npm run build
       - name: Verify OAuth client metadata
         run: |
-          test -f dist/.well-known/oauth-cimd
-          node -e "const fs=require('node:fs'); const p='dist/.well-known/oauth-cimd'; const m=JSON.parse(fs.readFileSync(p,'utf8')); if (!m.client_id?.endsWith('/.well-known/oauth-cimd') || !m.redirect_uris?.length) process.exit(1)"
+          test -f dist/oauth-cimd.json
+          node -e "const fs=require('node:fs'); const p='dist/oauth-cimd.json'; const m=JSON.parse(fs.readFileSync(p,'utf8')); if (!m.client_id?.endsWith('/oauth-cimd.json') || !m.redirect_uris?.length || m.token_endpoint_auth_method !== 'none') process.exit(1)"
+          grep -Fq '/open-shelves/oauth-cimd.json' dist/assets/harvard.js
+          grep -Fq '/open-shelves/oauth-cimd.json' dist/assets/oauth-callback.js
       - uses: actions/configure-pages@v5
-      - name: Package Pages artifact with hidden paths
-        run: |
-          tar \
-            --dereference --hard-dereference \
-            --directory dist \
-            -cvf "$RUNNER_TEMP/artifact.tar" \
-            .
-          tar -tf "$RUNNER_TEMP/artifact.tar" | grep -Eq '^\./\.well-known/oauth-cimd$'
-      - name: Upload Pages artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-pages-artifact@v4
         with:
-          name: github-pages
-          path: ${{ runner.temp }}/artifact.tar
-          retention-days: 1
-          if-no-files-found: error
+          path: dist
       - id: deployment
         uses: actions/deploy-pages@v4
