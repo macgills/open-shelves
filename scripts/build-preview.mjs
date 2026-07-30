@@ -63,14 +63,17 @@ for (const relativePath of ['index.html', 'assets/harvard.js', 'assets/oauth-cal
 
 for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
   const content = await readFile(path.join(dist, relativePath), 'utf8');
-  if (content.includes('oauth-cimd') || content.includes('missing-hf-oauth-client-id')) {
-    throw new Error(`${relativePath} is not configured with a registered Hugging Face OAuth client`);
+  if (content.includes('oauth-cimd')) {
+    throw new Error(`${relativePath} still contains the removed CIMD client`);
   }
 }
 
 const builtIndex = await readFile(path.join(dist, 'index.html'), 'utf8');
 if (!builtIndex.includes(`Preview ${shortSha}`) || !builtIndex.includes(`?v=${shortSha}`)) {
   throw new Error('Preview build marker or cache-busting asset version is missing');
+}
+if (!builtIndex.includes('hf-oauth-client-id') || !builtIndex.includes('hf-token-form')) {
+  throw new Error('Preview access configuration is missing');
 }
 
 console.log(`Prepared preview ${shortSha} for https://macgills.github.io${previewBasePath}/`);
