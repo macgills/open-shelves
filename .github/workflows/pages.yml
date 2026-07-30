@@ -16,21 +16,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      HF_OAUTH_CLIENT_ID: ${{ vars.HF_OAUTH_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Require registered OAuth client
+        run: test -n "$HF_OAUTH_CLIENT_ID"
       - run: npm test
       - run: npm run build
-      - name: Verify OAuth client metadata
+      - name: Verify registered OAuth client
         run: |
-          test -f dist/oauth-cimd.json
-          node -e "const fs=require('node:fs'); const p='dist/oauth-cimd.json'; const m=JSON.parse(fs.readFileSync(p,'utf8')); if (!m.client_id?.endsWith('/oauth-cimd.json') || !m.redirect_uris?.length || m.token_endpoint_auth_method !== 'none') process.exit(1)"
-          grep -Fq '/oauth-cimd.json' dist/assets/harvard.js
-          grep -Fq '/oauth-cimd.json' dist/assets/oauth-callback.js
-          ! grep -Fq '/.well-known/oauth-cimd' dist/assets/harvard.js
-          ! grep -Fq '/.well-known/oauth-cimd' dist/assets/oauth-callback.js
+          ! test -f dist/oauth-cimd.json
+          grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/harvard.js
+          grep -Fq "$HF_OAUTH_CLIENT_ID" dist/assets/oauth-callback.js
+          ! grep -Fq 'oauth-cimd' dist/assets/harvard.js
+          ! grep -Fq 'oauth-cimd' dist/assets/oauth-callback.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

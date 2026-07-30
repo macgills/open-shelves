@@ -1,0 +1,197 @@
+#ocr-reader {
+  --reader-bg: var(--paper);
+  --reader-surface: var(--surface-raised);
+  --reader-ink: var(--ink);
+  --reader-muted: var(--muted);
+  --reader-border: var(--line);
+  --reader-font-size: 18px;
+  --reader-line-height: 1.8;
+  --reader-width: 72ch;
+  background: var(--reader-bg);
+  color: var(--reader-ink);
+}
+
+#ocr-reader[data-reader-theme='light'] {
+  --reader-bg: #f7f2e9;
+  --reader-surface: #fffdf8;
+  --reader-ink: #24231f;
+  --reader-muted: #68645b;
+  --reader-border: #d4c8b5;
+}
+
+#ocr-reader[data-reader-theme='sepia'] {
+  --reader-bg: #e9dcc3;
+  --reader-surface: #f4e8cf;
+  --reader-ink: #352a20;
+  --reader-muted: #726150;
+  --reader-border: #bca98b;
+}
+
+#ocr-reader[data-reader-theme='dark'] {
+  --reader-bg: #171915;
+  --reader-surface: #22251f;
+  --reader-ink: #f1eadf;
+  --reader-muted: #aaa79d;
+  --reader-border: #4b4a41;
+}
+
+#ocr-reader .reader-dialog,
+#ocr-reader #reader-chrome {
+  background-color: var(--reader-bg);
+  color: var(--reader-ink);
+}
+
+#ocr-reader #reader-chrome {
+  background: linear-gradient(var(--reader-bg) 82%, transparent);
+}
+
+#ocr-reader .reader-author,
+#ocr-reader .eyebrow,
+#ocr-reader .reader-settings summary,
+#ocr-reader .reader-settings label {
+  color: var(--reader-muted);
+}
+
+#ocr-reader .reader-progress {
+  background: var(--reader-border);
+}
+
+#ocr-reader .page-controls,
+#ocr-reader .provenance,
+#ocr-reader .reader-status {
+  border-color: var(--reader-border);
+}
+
+#reader-page {
+  max-width: var(--reader-width);
+  background: var(--reader-surface);
+  border-color: var(--reader-border);
+  color: var(--reader-ink);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+}
+
+#reader-page:focus:not(:focus-visible) { outline: none; }
+#reader-page:focus-visible { outline: 2px solid var(--accent); outline-offset: .3rem; }
+
+#ocr-reader[data-reader-font='serif'] #reader-page {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+}
+
+#ocr-reader[data-reader-font='sans'] #reader-page {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  letter-spacing: .005em;
+}
+
+.reader-tools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 0 1rem;
+  border-bottom: 1px solid var(--reader-border);
+}
+
+.reader-settings {
+  position: relative;
+  margin-left: auto;
+  font: 650 .82rem system-ui;
+}
+
+.reader-settings summary {
+  cursor: pointer;
+  padding: .7rem .85rem;
+  border: 1px solid var(--reader-border);
+  border-radius: .42rem;
+  list-style: none;
+  user-select: none;
+}
+
+.reader-settings summary::-webkit-details-marker { display: none; }
+.reader-settings summary::after { content: ' ▾'; }
+.reader-settings[open] summary::after { content: ' ▴'; }
+
+.reader-settings-grid {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + .5rem);
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: .9rem 1rem;
+  width: min(430px, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid var(--reader-border);
+  border-radius: .55rem;
+  background: var(--reader-surface);
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / .22);
+}
+
+.reader-settings-grid label {
+  display: grid;
+  gap: .35rem;
+}
+
+.reader-settings-grid label:nth-last-child(-n + 3) {
+  grid-column: 1 / -1;
+}
+
+.reader-settings-grid select,
+.reader-settings-grid input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.reader-settings-grid select {
+  padding: .65rem .7rem;
+  border: 1px solid var(--reader-border);
+  border-radius: .35rem;
+  background: var(--reader-bg);
+  color: var(--reader-ink);
+  font: inherit;
+}
+
+#copy-page-link { white-space: nowrap; }
+
+@media (max-width: 760px) {
+  #reader-chrome {
+    position: static;
+    top: auto;
+    z-index: auto;
+    background: transparent;
+  }
+
+  .reader-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: .75rem;
+  }
+
+  .reader-settings {
+    position: static;
+    width: 100%;
+    margin: 0;
+  }
+
+  .reader-settings summary {
+    width: 100%;
+    text-align: center;
+  }
+
+  .reader-settings-grid {
+    position: static;
+    width: 100%;
+    margin-top: .75rem;
+    grid-template-columns: 1fr 1fr;
+    box-shadow: none;
+  }
+
+  #copy-page-link { width: 100%; }
+  #reader-page { max-width: none; }
+}
+
+@media (max-width: 430px) {
+  .reader-settings-grid { grid-template-columns: 1fr; }
+  .reader-settings-grid label { grid-column: 1 !important; }
+}

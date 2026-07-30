@@ -1,0 +1,60 @@
+#ocr-reader .reader-dialog {
+  display: flex;
+  flex-direction: column;
+}
+
+#reader-page[aria-busy='true'] {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  max-width: none;
+  min-height: clamp(18rem, 50vh, 42rem);
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#reader-page[aria-busy='true'] + .provenance {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  #ocr-reader[open] {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    inline-size: 100%;
+    max-width: none;
+    max-inline-size: none;
+    height: 100dvh;
+    block-size: 100dvh;
+    max-height: none;
+    max-block-size: none;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    border: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+  }
+
+  #ocr-reader .reader-dialog {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  #reader-page {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  #reader-page[aria-busy='true'] {
+    min-height: 0;
+    margin-top: 1rem;
+  }
+}

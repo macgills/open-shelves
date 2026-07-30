@@ -1,0 +1,125 @@
+name: Preview durable reader
+
+on:
+  push:
+    branches: [feature/durable-reader]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    env:
+      HF_OAUTH_CLIENT_ID: ${{ vars.HF_OAUTH_CLIENT_ID }}
+    steps:
+      - name: Check out preview branch
+        uses: actions/checkout@v4
+        with:
+          path: preview
+
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require registered OAuth client
+        run: test -n "$HF_OAUTH_CLIENT_ID"
+
+      - name: Install visual-test dependencies
+        working-directory: preview
+        run: npm install --no-audit --no-fund
+
+      - name: Install visual-test browsers
+        working-directory: preview
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Capture and verify mobile reader screenshots
+        working-directory: preview
+        run: npm run test:visual
+
+      - name: Upload mobile reader screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: durable-reader-mobile-${{ github.sha }}
+          path: preview/test-results/visual/**/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Test and build preview
+        working-directory: preview
+        env:
+          OPEN_SHELVES_PREVIEW_SLUG: durable-reader
+        run: |
+          npm test
+          npm run build
+          node scripts/build-preview.mjs
+
+      - name: Rebuild production root from main
+        working-directory: production
+        env:
+          HF_OAUTH_CLIENT_ID: ${{ vars.HF_OAUTH_CLIENT_ID }}
+        run: |
+          npm test
+          npm run build
+
+      - name: Mount preview beneath production
+        env:
+          PREVIEW_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p production/dist/previews/durable-reader
+          cp -a preview/dist/. production/dist/previews/durable-reader/
+          test -f production/dist/index.html
+          test -f production/dist/previews/durable-reader/index.html
+          ! test -f production/dist/previews/durable-reader/oauth-cimd.json
+          test -f production/dist/previews/durable-reader/preview-build.json
+          grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js?v=' production/dist/previews/durable-reader/index.html
+          grep -Fq "$HF_OAUTH_CLIENT_ID" production/dist/previews/durable-reader/assets/harvard.js
+          grep -Fq "$HF_OAUTH_CLIENT_ID" production/dist/previews/durable-reader/assets/oauth-callback.js
+          ! grep -Fq 'oauth-cimd' production/dist/previews/durable-reader/assets/harvard.js
+          node -e "const fs=require('node:fs'); const m=JSON.parse(fs.readFileSync('production/dist/previews/durable-reader/preview-build.json')); if (m.sha !== process.env.PREVIEW_SHA) { console.error(m); process.exit(1); }"
+
+      - name: Route nested preview URLs
+        run: |
+          cat > production/dist/404.html <<'EOF'
+          <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opening Open Shelves…</title></head><body><p>Opening Open Shelves…</p><script>
+          const preview = '/open-shelves/previews/durable-reader';
+          if (location.pathname.startsWith(`${preview}/`)) {
+            const route = `${location.pathname}${location.search}${location.hash}`;
+            location.replace(`${preview}/?route=${encodeURIComponent(route)}`);
+          } else {
+            location.replace('/open-shelves/');
+          }
+          </script><noscript><a href="/open-shelves/">Return to Open Shelves</a></noscript></body></html>
+          EOF
+
+      - uses: actions/configure-pages@v5
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: production/dist
+
+  deploy-preview:
+    needs: build-preview
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy branch preview
+        id: deployment
+        uses: actions/deploy-pages@v4
