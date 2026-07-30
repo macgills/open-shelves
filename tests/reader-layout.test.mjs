@@ -14,6 +14,16 @@ test('loading content fills the reader without looking like an empty page', asyn
   assert.match(styles, /#reader-page\[aria-busy='true'\] \+ \.provenance/);
 });
 
+test('mobile dialog explicitly overrides browser default maximum sizing', async () => {
+  const styles = await read('public/assets/reader-layout.css');
+  assert.match(styles, /#ocr-reader\[open\] \{[\s\S]*inset: 0/);
+  assert.match(styles, /#ocr-reader\[open\] \{[\s\S]*inline-size: 100%/);
+  assert.match(styles, /#ocr-reader\[open\] \{[\s\S]*max-inline-size: none/);
+  assert.match(styles, /#ocr-reader\[open\] \{[\s\S]*max-block-size: none/);
+  assert.match(styles, /#ocr-reader \.reader-dialog \{[\s\S]*width: 100%/);
+  assert.match(styles, /#reader-page \{[\s\S]*max-width: 100%/);
+});
+
 test('mobile reader controls flow vertically instead of overlapping', async () => {
   const readerStyles = await read('public/assets/reader.css');
   const textStyles = await read('public/assets/readable-text.css');
