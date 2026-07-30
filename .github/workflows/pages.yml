@@ -23,6 +23,10 @@ jobs:
           node-version: 22
       - run: npm test
       - run: npm run build
+      - name: Verify OAuth client metadata
+        run: |
+          test -f dist/.well-known/oauth-cimd
+          node -e "const fs=require('node:fs'); const p='dist/.well-known/oauth-cimd'; const m=JSON.parse(fs.readFileSync(p,'utf8')); if (!m.client_id?.endsWith('/.well-known/oauth-cimd') || !m.redirect_uris?.length) process.exit(1)"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
