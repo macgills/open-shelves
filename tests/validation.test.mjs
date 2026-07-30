@@ -33,6 +33,14 @@ test('persists consent and hides the general consent state after acknowledgement
   assert.match(browser, /accessPanel\.hidden = connected/);
 });
 
+test('catalogue uses deterministic generated covers and recent books', async () => {
+  const browser = await read('public/assets/harvard.js');
+  assert.match(browser, /className = `book-cover/);
+  assert.match(browser, /open-shelves-recent-books/);
+  assert.match(browser, /rememberRecent\(rowIndex/);
+  assert.match(browser, /renderRecent\(\)/);
+});
+
 test('opens the reader with an in-modal loading state and locks background scroll', async () => {
   const browser = await read('public/assets/harvard.js');
   assert.match(browser, /showReaderLoading\(metadata\);\s*try \{/);
@@ -42,12 +50,27 @@ test('opens the reader with an in-modal loading state and locks background scrol
   assert.match(browser, /Fetching page-level OCR from the official dataset/);
 });
 
-test('generated markup contains compact access and reader status targets', async () => {
+test('reader exposes page progress', async () => {
+  const browser = await read('public/assets/harvard.js');
+  assert.match(browser, /readerProgressFill\.style\.width/);
+  assert.match(browser, /readerProgress\.setAttribute\('aria-valuenow'/);
+});
+
+test('generated markup contains visual shelves and reader progress targets', async () => {
   const build = await read('scripts/build.mjs');
-  assert.match(build, /id="consent-introduction"/);
-  assert.match(build, /id="reader-status"/);
-  assert.match(build, /id="reader-controls"/);
+  assert.match(build, /id="recent-section"/);
+  assert.match(build, /id="recent-results"/);
+  assert.match(build, /id="reader-progress"/);
+  assert.match(build, /id="reader-progress-fill"/);
   assert.match(build, /id="hf-sign-out"/);
+});
+
+test('styles include covers, compact returning state and full-screen mobile reader', async () => {
+  const styles = await read('public/assets/site.css');
+  assert.match(styles, /\.book-cover/);
+  assert.match(styles, /\.returning-user \.stats/);
+  assert.match(styles, /#ocr-reader \{ width: 100vw; height: 100dvh/);
+  assert.match(styles, /\.reader-progress/);
 });
 
 test('production build rewrites OAuth references to the JSON document', async () => {
