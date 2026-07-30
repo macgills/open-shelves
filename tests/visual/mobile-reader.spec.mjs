@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const sampleText = `PREFACE.\n\nSoon after its expansion in 1894 into a national organization, the American Mathematical Society inaugurated the series of Colloquia which have been held in connection with its summer meetings since 1896, at intervals of two or three years.\n\nColloquia consist of courses of lectures delivered by specialists on selected chapters of their fields of work.`;
+const longSampleText = Array.from({ length: 12 }, () => sampleText).join('\n\n');
 
 async function stageReader(page, rawText) {
   await page.goto('/open-shelves/', { waitUntil: 'networkidle' });
@@ -33,6 +34,7 @@ async function stageReader(page, rawText) {
   }, { rawText });
 
   await expect(page.locator('#ocr-reader')).toBeVisible();
+  await expect(page.locator('#reader-controls-bottom')).toBeVisible();
   await page.waitForTimeout(100);
 }
 
@@ -68,6 +70,7 @@ async function expectMobileReaderToFit(page) {
       chrome: rect('#reader-chrome'),
       context: rect('#reader-text-context'),
       readerPage: rect('#reader-page'),
+      bottomControls: rect('#reader-controls-bottom'),
       offenders
     };
   });
@@ -78,6 +81,9 @@ async function expectMobileReaderToFit(page) {
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.readerPage.left).toBeGreaterThanOrEqual(-1);
   expect(layout.readerPage.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.bottomControls.left).toBeGreaterThanOrEqual(-1);
+  expect(layout.bottomControls.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.bottomControls.top).toBeGreaterThanOrEqual(layout.readerPage.bottom - 1);
   expect(layout.offenders).toEqual([]);
 
   const contentStart = layout.context.hidden ? layout.readerPage.top : layout.context.top;
@@ -92,6 +98,18 @@ test('loaded mobile reader fills the viewport without a right gutter or overlapp
   await expectMobileReaderToFit(page);
   await page.screenshot({
     path: testInfo.outputPath('mobile-reader-loaded.png'),
+    animations: 'disabled'
+  });
+});
+
+test('next-page navigation is available after scrolling through a long page', async ({ page }, testInfo) => {
+  await stageReader(page, longSampleText);
+  const dialog = page.locator('#ocr-reader');
+  await dialog.evaluate(node => node.scrollTo({ top: node.scrollHeight, behavior: 'instant' }));
+  await expect(page.locator('#next-reader-page-bottom')).toBeInViewport();
+  await expect(page.locator('#next-reader-page-bottom')).toBeEnabled();
+  await page.screenshot({
+    path: testInfo.outputPath('mobile-reader-bottom-navigation.png'),
     animations: 'disabled'
   });
 });
