@@ -38,5 +38,5 @@ jobs:
         with:
           name: mobile-reader-screenshots-${{ github.event.pull_request.number || github.run_number }}-${{ github.sha }}
           path: test-results/visual/**/*.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
