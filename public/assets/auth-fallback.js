@@ -1,4 +1,5 @@
 const tokenKey = 'open-shelves-hf-token';
+const consentKey = 'open-shelves-hf-consent';
 const metadataDataset = 'institutional/institutional-books-1.0-metadata';
 const datasetsApi = 'https://datasets-server.huggingface.co';
 const missingClientId = 'missing-hf-oauth-client-id';
@@ -14,8 +15,17 @@ const tokenInput = document.querySelector('#hf-access-token');
 const tokenSubmit = document.querySelector('#hf-token-submit');
 const tokenStatus = document.querySelector('#hf-token-status');
 
+const hasAcceptedTerms = () => {
+  if (termsConfirmed?.checked) return true;
+  try {
+    return localStorage.getItem(consentKey) === 'accepted';
+  } catch {
+    return false;
+  }
+};
+
 const updateTokenUi = () => {
-  const accepted = Boolean(termsConfirmed?.checked);
+  const accepted = hasAcceptedTerms();
   if (tokenInput) tokenInput.disabled = !accepted;
   if (tokenSubmit) tokenSubmit.disabled = !accepted;
 };
@@ -37,11 +47,11 @@ signIn?.addEventListener('click', event => {
 }, { capture: true });
 
 termsConfirmed?.addEventListener('change', updateTokenUi);
-updateTokenUi();
+queueMicrotask(updateTokenUi);
 
 tokenForm?.addEventListener('submit', async event => {
   event.preventDefault();
-  if (!termsConfirmed?.checked) {
+  if (!hasAcceptedTerms()) {
     tokenStatus.textContent = 'Review and accept the dataset terms first.';
     return;
   }
