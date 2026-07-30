@@ -1,15 +1,12 @@
 {
   "name": "open-shelves",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/ingest.mjs && node scripts/build.mjs",
-    "build:offline": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs",
     "check": "node --test",
     "dev": "node scripts/serve.mjs",
-    "ingest": "node scripts/ingest.mjs",
-    "import:book": "node scripts/import-book.mjs",
     "test": "node --test"
   },
   "engines": {
