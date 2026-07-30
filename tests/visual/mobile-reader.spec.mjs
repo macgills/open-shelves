@@ -105,7 +105,7 @@ test('loaded mobile reader fills the viewport without a right gutter or overlapp
 test('next-page navigation is available after scrolling through a long page', async ({ page }, testInfo) => {
   await stageReader(page, longSampleText);
   const dialog = page.locator('#ocr-reader');
-  await dialog.evaluate(node => node.scrollTo({ top: node.scrollHeight, behavior: 'instant' }));
+  await dialog.evaluate(node => { node.scrollTop = node.scrollHeight; });
   await expect(page.locator('#next-reader-page-bottom')).toBeInViewport();
   await expect(page.locator('#next-reader-page-bottom')).toBeEnabled();
   await page.screenshot({
