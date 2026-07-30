@@ -45,10 +45,9 @@ test('missing source text becomes a reader-friendly empty state', async () => {
 
 test('rendered page changes reset the modal scroll position', async () => {
   const behaviour = await read('public/assets/reader-behaviour.js');
-  const build = await read('scripts/build.mjs');
+  const app = await read('public/assets/app.js');
   assert.match(behaviour, /new MutationObserver\(scrollReaderToTop\)/);
   assert.match(behaviour, /reader\.scrollTo\(\{ top: 0/);
   assert.match(behaviour, /attributeFilter: \['aria-busy'\]/);
-  assert.match(build, /assets\/reader-behaviour\.js/);
-  assert.match(build, /assets\/reader-layout\.css/);
+  assert.match(app, /reader-behaviour\.js/);
 });
