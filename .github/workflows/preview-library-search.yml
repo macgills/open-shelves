@@ -1,0 +1,103 @@
+name: Preview library and search
+
+on:
+  push:
+    branches: [feature/library-search-v2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    environment:
+      name: preview-library-search
+      url: https://macgills.github.io/open-shelves/previews/library-search/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out library/search branch
+        uses: actions/checkout@v4
+        with:
+          path: library
+
+      - name: Check out durable-reader branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/durable-reader
+          path: durable
+
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test and build durable-reader preview
+        working-directory: durable
+        env:
+          OPEN_SHELVES_PREVIEW_SLUG: durable-reader
+        run: |
+          npm test
+          npm run build
+          node scripts/build-preview.mjs
+
+      - name: Test and build library/search preview
+        working-directory: library
+        env:
+          OPEN_SHELVES_PREVIEW_SLUG: library-search
+        run: |
+          npm test
+          npm run build
+          node scripts/build-preview.mjs
+
+      - name: Rebuild production root from main
+        working-directory: production
+        run: |
+          npm test
+          npm run build
+
+      - name: Mount both previews beneath production
+        run: |
+          mkdir -p production/dist/previews/durable-reader production/dist/previews/library-search
+          cp -a durable/dist/. production/dist/previews/durable-reader/
+          cp -a library/dist/. production/dist/previews/library-search/
+          test -f production/dist/index.html
+          test -f production/dist/previews/durable-reader/index.html
+          test -f production/dist/previews/library-search/index.html
+          grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js' production/dist/previews/durable-reader/index.html
+          grep -Fq '/open-shelves/previews/library-search/assets/app.js' production/dist/previews/library-search/index.html
+          grep -Fq 'https://macgills.github.io/open-shelves/previews/durable-reader/oauth-cimd.json' production/dist/previews/durable-reader/oauth-cimd.json
+          grep -Fq 'https://macgills.github.io/open-shelves/previews/library-search/oauth-cimd.json' production/dist/previews/library-search/oauth-cimd.json
+
+      - name: Route nested app URLs
+        run: |
+          cat > production/dist/404.html <<'EOF'
+          <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opening Open Shelves…</title></head><body><p>Opening Open Shelves…</p><script>
+          const route = `${location.pathname}${location.search}${location.hash}`;
+          const previews = ['durable-reader', 'library-search'];
+          const slug = previews.find(value => location.pathname.startsWith(`/open-shelves/previews/${value}/`));
+          const base = slug ? `/open-shelves/previews/${slug}` : '/open-shelves';
+          location.replace(`${base}/?route=${encodeURIComponent(route)}`);
+          </script><noscript><a href="/open-shelves/">Return to Open Shelves</a></noscript></body></html>
+          EOF
+
+      - uses: actions/configure-pages@v5
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: production/dist
+
+      - name: Deploy stacked previews
+        id: deployment
+        uses: actions/deploy-pages@v4
