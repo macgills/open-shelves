@@ -1,0 +1,73 @@
+name: Preview durable reader
+
+on:
+  push:
+    branches: [feature/durable-reader]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    environment:
+      name: github-pages
+      url: https://macgills.github.io/open-shelves/previews/durable-reader/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out preview branch
+        uses: actions/checkout@v4
+        with:
+          path: preview
+
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test and build preview
+        working-directory: preview
+        env:
+          OPEN_SHELVES_PREVIEW_SLUG: durable-reader
+        run: |
+          npm test
+          npm run build
+          node scripts/build-preview.mjs
+
+      - name: Rebuild production root from main
+        working-directory: production
+        run: |
+          npm test
+          npm run build
+
+      - name: Mount preview beneath production
+        run: |
+          mkdir -p production/dist/previews/durable-reader
+          cp -a preview/dist/. production/dist/previews/durable-reader/
+          test -f production/dist/index.html
+          test -f production/dist/previews/durable-reader/index.html
+          test -f production/dist/previews/durable-reader/oauth-cimd.json
+          grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js' production/dist/previews/durable-reader/index.html
+          grep -Fq 'https://macgills.github.io/open-shelves/previews/durable-reader/oauth-cimd.json' production/dist/previews/durable-reader/oauth-cimd.json
+
+      - uses: actions/configure-pages@v5
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: production/dist
+
+      - name: Deploy branch preview
+        id: deployment
+        uses: actions/deploy-pages@v4
