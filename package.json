@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node --check public/assets/app.js && node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --check public/assets/reader-search.js && node --check public/assets/library.js && node --test",
+    "check": "node --check public/assets/app.js && node --check public/assets/auth-fallback.js && node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --check public/assets/reader-search.js && node --check public/assets/library.js && node --test",
     "dev": "node scripts/serve.mjs",
-    "test": "node --check public/assets/app.js && node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --check public/assets/reader-search.js && node --check public/assets/library.js && node --test",
+    "test": "node --check public/assets/app.js && node --check public/assets/auth-fallback.js && node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --check public/assets/reader-search.js && node --check public/assets/library.js && node --test",
     "test:visual": "playwright test"
   },
   "devDependencies": {
