@@ -50,6 +50,21 @@ test('opens the reader with an in-modal loading state and locks background scrol
   assert.match(browser, /Fetching page-level OCR from the official dataset/);
 });
 
+test('presents scanned text in readable and exact views', async () => {
+  const build = await read('scripts/build.mjs');
+  const presentation = await read('public/assets/readable-text.js');
+  const styles = await read('public/assets/readable-text.css');
+  assert.match(build, /Readable text\./);
+  assert.match(build, /Exact transcription/);
+  assert.match(build, /How this text was made/);
+  assert.match(build, /aria-label="Book pages"/);
+  assert.match(presentation, /normaliseMechanicalBreaks/);
+  assert.match(presentation, /isVerse/);
+  assert.match(presentation, /open-shelves-text-view/);
+  assert.match(styles, /data-text-view='readable'/);
+  assert.match(styles, /transcription-paragraph/);
+});
+
 test('uses stable barcode routes instead of row-index query parameters', async () => {
   const browser = await read('public/assets/harvard.js');
   assert.match(browser, /const bookPath = \(barcode, page = 1\)/);
@@ -93,6 +108,7 @@ test('generated markup contains durable reader controls and a 404 app shell', as
   assert.match(build, /id="reader-font-size"/);
   assert.match(build, /output\('404\.html', page\)/);
   assert.match(build, /assets\/reader\.css/);
+  assert.match(build, /assets\/readable-text\.css/);
 });
 
 test('styles include covers, compact returning state and full-screen mobile reader', async () => {
