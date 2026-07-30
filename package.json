@@ -7,7 +7,11 @@
     "build": "node scripts/build.mjs",
     "check": "node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --test",
     "dev": "node scripts/serve.mjs",
-    "test": "node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --test"
+    "test": "node --check public/assets/harvard.js && node --check public/assets/oauth-callback.js && node --check public/assets/reader-behaviour.js && node --check public/assets/readable-text.js && node --test",
+    "test:visual": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.54.1"
   },
   "engines": {
     "node": ">=22"
