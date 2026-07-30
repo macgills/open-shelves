@@ -8,6 +8,12 @@ const exactButton = document.querySelector('#text-view-exact');
 const readerStatus = document.querySelector('#reader-status');
 const readerMeta = document.querySelector('#reader-meta');
 
+const noTextMarkers = new Set([
+  '',
+  '[No OCR text was supplied for this page.]',
+  'No readable text is available for this page.'
+]);
+
 let rawText = '';
 let currentView = 'readable';
 let pageObserver;
@@ -29,6 +35,8 @@ const normaliseMechanicalBreaks = value => String(value)
   .replaceAll('\r', '\n')
   .replaceAll(/([A-Za-zÀ-ÖØ-öø-ÿ])-\n(?=[a-zà-öø-ÿ])/g, '$1')
   .trim();
+
+const hasReadableText = value => !noTextMarkers.has(String(value).trim());
 
 const isHeading = lines => {
   if (lines.length !== 1) return false;
@@ -70,7 +78,23 @@ const createReadableBlock = block => {
   return paragraph;
 };
 
+const renderEmptyPage = () => {
+  const empty = document.createElement('div');
+  empty.className = 'transcription-empty-state';
+  const heading = document.createElement('strong');
+  heading.textContent = 'No readable text for this page';
+  const explanation = document.createElement('span');
+  explanation.textContent = 'The page is present in the scanned book, but its words could not be converted into searchable text.';
+  empty.append(heading, explanation);
+  readerPage.replaceChildren(empty);
+};
+
 const renderReadable = () => {
+  if (!hasReadableText(rawText)) {
+    renderEmptyPage();
+    return;
+  }
+
   const fragment = document.createDocumentFragment();
   const normalised = normaliseMechanicalBreaks(rawText);
   for (const block of normalised.split(/\n\s*\n+/)) {
@@ -78,10 +102,8 @@ const renderReadable = () => {
     if (element) fragment.append(element);
   }
   if (!fragment.childNodes.length) {
-    const empty = document.createElement('p');
-    empty.className = 'transcription-empty';
-    empty.textContent = 'No readable text is available for this page.';
-    fragment.append(empty);
+    renderEmptyPage();
+    return;
   }
   readerPage.replaceChildren(fragment);
 };
@@ -108,7 +130,8 @@ const renderCurrentPage = () => {
   pageObserver?.disconnect();
   const busy = readerPage.hasAttribute('aria-busy');
   const reading = !busy && readerChrome && !readerChrome.hidden;
-  readerContext.hidden = !reading;
+  const hasText = hasReadableText(rawText);
+  readerContext.hidden = !reading || !hasText;
 
   if (busy) {
     readerPage.textContent = 'Preparing readable text…';
@@ -116,6 +139,9 @@ const renderCurrentPage = () => {
   } else if (!reading) {
     readerPage.textContent = translateError(readerPage.textContent);
     readerPage.dataset.textView = 'message';
+  } else if (!hasText) {
+    readerPage.dataset.textView = 'empty';
+    renderEmptyPage();
   } else if (currentView === 'exact') {
     readerPage.textContent = rawText;
     readerPage.dataset.textView = 'exact';
