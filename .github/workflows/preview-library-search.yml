@@ -2,7 +2,7 @@ name: Preview library and search
 
 on:
   push:
-    branches: [feature/library-search-v2]
+    branches: [feature/library-search]
   workflow_dispatch:
 
 permissions:
