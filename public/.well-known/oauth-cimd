@@ -1,9 +1,0 @@
-{
-  "client_id": "https://macgills.github.io/open-shelves/.well-known/oauth-cimd",
-  "client_name": "Open Shelves",
-  "redirect_uris": [
-    "https://macgills.github.io/open-shelves/oauth/callback/huggingface/"
-  ],
-  "token_endpoint_auth_method": "none",
-  "client_uri": "https://macgills.github.io/open-shelves/"
-}
