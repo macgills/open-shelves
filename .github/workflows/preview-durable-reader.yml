@@ -61,6 +61,20 @@ jobs:
           grep -Fq '/open-shelves/previews/durable-reader/assets/harvard.js' production/dist/previews/durable-reader/index.html
           grep -Fq 'https://macgills.github.io/open-shelves/previews/durable-reader/oauth-cimd.json' production/dist/previews/durable-reader/oauth-cimd.json
 
+      - name: Route nested preview URLs
+        run: |
+          cat > production/dist/404.html <<'EOF'
+          <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opening Open Shelves…</title></head><body><p>Opening Open Shelves…</p><script>
+          const preview = '/open-shelves/previews/durable-reader';
+          if (location.pathname.startsWith(`${preview}/`)) {
+            const route = `${location.pathname}${location.search}${location.hash}`;
+            location.replace(`${preview}/?route=${encodeURIComponent(route)}`);
+          } else {
+            location.replace('/open-shelves/');
+          }
+          </script><noscript><a href="/open-shelves/">Return to Open Shelves</a></noscript></body></html>
+          EOF
+
       - uses: actions/configure-pages@v5
 
       - name: Upload combined Pages artifact
