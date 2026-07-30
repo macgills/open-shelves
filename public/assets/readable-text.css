@@ -1,0 +1,78 @@
+.reader-text-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: var(--reader-width);
+  margin: 1.25rem auto 0;
+  padding: .9rem 1rem;
+  border: 1px solid var(--reader-border);
+  border-radius: .5rem;
+  background: color-mix(in srgb, var(--reader-surface) 82%, transparent);
+  color: var(--reader-muted);
+  font: .82rem/1.45 system-ui;
+}
+
+.reader-text-context p { margin: 0; }
+.reader-text-context strong { color: var(--reader-ink); }
+
+.text-view-switch {
+  display: flex;
+  flex: 0 0 auto;
+  gap: .35rem;
+  padding: .25rem;
+  border: 1px solid var(--reader-border);
+  border-radius: .45rem;
+  background: var(--reader-bg);
+}
+
+.text-view-switch button {
+  padding: .5rem .7rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--reader-muted);
+  box-shadow: none;
+}
+
+.text-view-switch button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+#reader-page[data-text-view='readable'] { white-space: normal; }
+#reader-page[data-text-view='exact'] { white-space: pre-wrap; }
+
+.transcription-paragraph,
+.transcription-verse { margin: 0 0 1.15em; }
+.transcription-paragraph:last-child,
+.transcription-verse:last-child { margin-bottom: 0; }
+.transcription-heading {
+  margin: 1.7em 0 .8em;
+  text-align: center;
+  font-size: 1.15em;
+  letter-spacing: .02em;
+}
+.transcription-heading:first-child { margin-top: 0; }
+.transcription-verse { padding-left: clamp(0rem, 5vw, 3rem); }
+.transcription-empty { color: var(--reader-muted); font-style: italic; }
+
+.provenance summary {
+  cursor: pointer;
+  color: var(--reader-ink);
+  font-weight: 750;
+}
+
+.provenance summary + p { margin-top: 1rem; }
+.provenance p:last-child { margin-bottom: 0; }
+
+@media (max-width: 760px) {
+  .reader-text-context {
+    align-items: stretch;
+    flex-direction: column;
+    max-width: none;
+  }
+  .text-view-switch { width: 100%; }
+  .text-view-switch button { flex: 1; }
+  .transcription-verse { padding-left: 0; }
+}
