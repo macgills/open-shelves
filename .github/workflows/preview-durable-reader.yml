@@ -33,6 +33,27 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install visual-test dependencies
+        working-directory: preview
+        run: npm install --no-audit --no-fund
+
+      - name: Install visual-test browsers
+        working-directory: preview
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Capture and verify mobile reader screenshots
+        working-directory: preview
+        run: npm run test:visual
+
+      - name: Upload mobile reader screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: durable-reader-mobile-${{ github.sha }}
+          path: preview/test-results/visual/**/*.png
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Test and build preview
         working-directory: preview
         env:
