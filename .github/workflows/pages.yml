@@ -16,25 +16,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/setup-python@v5
-        if: ${{ env.HF_TOKEN != '' }}
-        with:
-          python-version: '3.12'
-      - name: Export Harvard metadata discovery index
-        if: ${{ env.HF_TOKEN != '' }}
-        run: |
-          python -m pip install --disable-pip-version-check 'datasets>=3,<5'
-          python scripts/export_harvard.py
-      - name: Explain missing Harvard access token
-        if: ${{ env.HF_TOKEN == '' }}
-        run: echo 'HF_TOKEN is not configured; deploying the Harvard overview without the 983k-record search index.'
       - run: npm test
       - run: npm run build
       - uses: actions/configure-pages@v5
