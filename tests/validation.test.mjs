@@ -9,7 +9,7 @@ test('escapes generated page content', () => {
   assert.equal(escapeHtml(`<script a="b">&'</script>`), '&lt;script a=&quot;b&quot;&gt;&amp;&#39;&lt;/script&gt;');
 });
 
-test('build supports registered OAuth without requiring it to deploy', async () => {
+test('build supports registered OAuth without embedding a client secret', async () => {
   const build = await read('scripts/build.mjs');
   assert.match(build, /HF_OAUTH_CLIENT_ID/);
   assert.match(build, /missing-hf-oauth-client-id/);
@@ -111,6 +111,19 @@ test('reader exposes visual page progress', async () => {
   assert.match(browser, /readerProgress\.setAttribute\('aria-valuenow'/);
 });
 
+test('reader repeats page navigation after the book contents', async () => {
+  const build = await read('scripts/build.mjs');
+  const app = await read('public/assets/app.js');
+  const behaviour = await read('public/assets/reader-bottom-nav.js');
+  const styles = await read('public/assets/reader-bottom-nav.css');
+  assert.match(build, /id="reader-page"[\s\S]*id="reader-controls-bottom"/);
+  assert.match(build, /id="next-reader-page-bottom"/);
+  assert.match(app, /harvard\.js[\s\S]*reader-bottom-nav\.js[\s\S]*reader-behaviour\.js/);
+  assert.match(behaviour, /nextBottom\?\.addEventListener\('click'/);
+  assert.match(behaviour, /nextTop\?\.click\(\)/);
+  assert.match(styles, /\.reader-controls-bottom/);
+});
+
 test('generated markup contains durable reader controls and access fallback', async () => {
   const build = await read('scripts/build.mjs');
   assert.match(build, /id="recent-section"/);
@@ -134,15 +147,19 @@ test('styles include covers, compact returning state and full-screen mobile read
   assert.match(authStyles, /\.token-form/);
 });
 
-test('production and preview workflows deploy without an OAuth repository variable', async () => {
-  const production = await read('.github/workflows/pages.yml');
-  const preview = await read('.github/workflows/preview-durable-reader.yml');
-  for (const workflow of [production, preview]) {
-    assert.match(workflow, /vars\.HF_OAUTH_CLIENT_ID/);
-    assert.doesNotMatch(workflow, /Require registered OAuth client/);
+test('production and preview workflows use the OAuth client ID repository secret', async () => {
+  const workflows = await Promise.all([
+    read('.github/workflows/pages.yml'),
+    read('.github/workflows/preview-durable-reader.yml'),
+    read('.github/workflows/preview-library-search.yml')
+  ]);
+  for (const workflow of workflows) {
+    assert.match(workflow, /secrets\.HF_OAUTH_CLIENT_ID/);
+    assert.doesNotMatch(workflow, /vars\.HF_OAUTH_CLIENT_ID/);
+    assert.match(workflow, /Require registered OAuth client/);
     assert.match(workflow, /! grep -Fq 'oauth-cimd'/);
+    assert.match(workflow, /if-no-files-found: warn/);
   }
-  assert.match(preview, /if-no-files-found: warn/);
 });
 
 test('branch preview rewrites app URLs beneath the preview path', async () => {
