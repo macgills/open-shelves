@@ -9,13 +9,13 @@ test('escapes generated page content', () => {
   assert.equal(escapeHtml(`<script a="b">&'</script>`), '&lt;script a=&quot;b&quot;&gt;&amp;&#39;&lt;/script&gt;');
 });
 
-test('declares a public Hugging Face OAuth client as JSON', async () => {
-  const metadata = JSON.parse(await read('public/oauth-cimd.json'));
-  assert.equal(metadata.client_id, 'https://macgills.github.io/open-shelves/oauth-cimd.json');
-  assert.equal(metadata.token_endpoint_auth_method, 'none');
-  assert.deepEqual(metadata.grant_types, ['authorization_code']);
-  assert.deepEqual(metadata.response_types, ['code']);
-  assert.deepEqual(metadata.redirect_uris, ['https://macgills.github.io/open-shelves/oauth/callback/huggingface/']);
+test('build injects a registered public Hugging Face OAuth client', async () => {
+  const build = await read('scripts/build.mjs');
+  assert.match(build, /HF_OAUTH_CLIENT_ID/);
+  assert.match(build, /JSON\.stringify\(oauthClientId\)/);
+  assert.match(build, /assets\/harvard\.js/);
+  assert.match(build, /assets\/oauth-callback\.js/);
+  assert.doesNotMatch(build, /oauth-cimd\.json/);
 });
 
 test('requests only gated read access for dataset browsing', async () => {
@@ -122,17 +122,21 @@ test('styles include covers, compact returning state and full-screen mobile read
   assert.match(readerStyles, /\.reader-settings-grid/);
 });
 
-test('production build rewrites OAuth references to the JSON document', async () => {
-  const build = await read('scripts/build.mjs');
-  assert.match(build, /oauth-cimd\.json/);
-  assert.match(build, /replaceAll\(legacyOAuthClientPath, oauthClientPath\)/);
+test('production and preview workflows require the public client ID', async () => {
+  const production = await read('.github/workflows/pages.yml');
+  const preview = await read('.github/workflows/preview-durable-reader.yml');
+  for (const workflow of [production, preview]) {
+    assert.match(workflow, /vars\.HF_OAUTH_CLIENT_ID/);
+    assert.match(workflow, /Require registered OAuth client/);
+    assert.match(workflow, /! grep -Fq 'oauth-cimd'/);
+  }
 });
 
-test('branch preview rewrites app and OAuth URLs beneath the preview path', async () => {
+test('branch preview rewrites app URLs beneath the preview path', async () => {
   const preview = await read('scripts/build-preview.mjs');
   const workflow = await read('.github/workflows/preview-durable-reader.yml');
   assert.match(preview, /previews\/\$\{previewSlug\}/);
-  assert.match(preview, /Preview OAuth metadata was not rewritten/);
+  assert.match(preview, /registered Hugging Face OAuth client/);
   assert.match(workflow, /production\/dist\/previews\/durable-reader/);
   assert.match(workflow, /ref: main/);
 });
