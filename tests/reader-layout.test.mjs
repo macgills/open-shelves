@@ -4,10 +4,13 @@ import { readFile } from 'node:fs/promises';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('loading content fills the reader and hides provenance until ready', async () => {
+test('loading content fills the reader without looking like an empty page', async () => {
   const styles = await read('public/assets/reader-layout.css');
   assert.match(styles, /\.reader-dialog \{[\s\S]*display: flex/);
-  assert.match(styles, /#reader-page\[aria-busy='true'\][\s\S]*flex: 1 1 45vh/);
+  assert.match(styles, /#reader-page\[aria-busy='true'\][\s\S]*align-self: stretch/);
+  assert.match(styles, /#reader-page\[aria-busy='true'\][\s\S]*width: 100%/);
+  assert.match(styles, /#reader-page\[aria-busy='true'\][\s\S]*max-width: none/);
+  assert.match(styles, /#reader-page\[aria-busy='true'\][\s\S]*background: transparent/);
   assert.match(styles, /#reader-page\[aria-busy='true'\] \+ \.provenance/);
 });
 
