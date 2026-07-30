@@ -1,8 +1,23 @@
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { escapeHtml, output, resetDist, root } from './lib.mjs';
 
 const basePath = '/open-shelves';
+const legacyOAuthClientPath = `${basePath}/.well-known/oauth-cimd`;
+const oauthClientPath = `${basePath}/oauth-cimd.json`;
 await resetDist();
+
+// GitHub Pages derives MIME types from file extensions and cannot set a custom
+// Content-Type for the extensionless CIMD path. Rewrite the two browser assets
+// to use the JSON-suffixed client metadata document in the deployed artifact.
+for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
+  const target = path.join(root, 'dist', relativePath);
+  const source = await readFile(target, 'utf8');
+  if (!source.includes(legacyOAuthClientPath)) {
+    throw new Error(`${relativePath} does not contain the expected OAuth client path`);
+  }
+  await writeFile(target, source.replaceAll(legacyOAuthClientPath, oauthClientPath));
+}
 
 const shell = ({ title, body, description = 'Browse and read Harvard Institutional Books with your own gated access.', scripts = '' }) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
