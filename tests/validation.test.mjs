@@ -25,6 +25,31 @@ test('requests only gated read access for dataset browsing', async () => {
   assert.doesNotMatch(browser, /HF_TOKEN|GUTENBERG/i);
 });
 
+test('persists consent and hides the general consent state after acknowledgement', async () => {
+  const browser = await read('public/assets/harvard.js');
+  assert.match(browser, /open-shelves-hf-consent/);
+  assert.match(browser, /localStorage\.setItem\(consentKey, 'accepted'\)/);
+  assert.match(browser, /consentIntroduction\.hidden = consented/);
+  assert.match(browser, /accessPanel\.hidden = connected/);
+});
+
+test('opens the reader with an in-modal loading state and locks background scroll', async () => {
+  const browser = await read('public/assets/harvard.js');
+  assert.match(browser, /showReaderLoading\(metadata\);\s*try \{/);
+  assert.match(browser, /reader\.showModal\(\)/);
+  assert.match(browser, /document\.body\.classList\.add\('reader-open'\)/);
+  assert.match(browser, /unlockDocumentScroll\(\)/);
+  assert.match(browser, /Fetching page-level OCR from the official dataset/);
+});
+
+test('generated markup contains compact access and reader status targets', async () => {
+  const build = await read('scripts/build.mjs');
+  assert.match(build, /id="consent-introduction"/);
+  assert.match(build, /id="reader-status"/);
+  assert.match(build, /id="reader-controls"/);
+  assert.match(build, /id="hf-sign-out"/);
+});
+
 test('production build rewrites OAuth references to the JSON document', async () => {
   const build = await read('scripts/build.mjs');
   assert.match(build, /oauth-cimd\.json/);
