@@ -27,11 +27,13 @@
 }
 
 .text-view-switch button {
+  min-width: 0;
   padding: .5rem .7rem;
   border-color: transparent;
   background: transparent;
   color: var(--reader-muted);
   box-shadow: none;
+  white-space: normal;
 }
 
 .text-view-switch button[aria-pressed='true'] {
@@ -42,6 +44,7 @@
 
 #reader-page[data-text-view='readable'] { white-space: normal; }
 #reader-page[data-text-view='exact'] { white-space: pre-wrap; }
+#reader-page[data-text-view='empty'] { display: grid; place-items: center; white-space: normal; }
 
 .transcription-paragraph,
 .transcription-verse { margin: 0 0 1.15em; }
@@ -55,7 +58,25 @@
 }
 .transcription-heading:first-child { margin-top: 0; }
 .transcription-verse { padding-left: clamp(0rem, 5vw, 3rem); }
-.transcription-empty { color: var(--reader-muted); font-style: italic; }
+
+.transcription-empty-state {
+  display: grid;
+  place-items: center;
+  gap: .55rem;
+  max-width: 34rem;
+  min-height: min(42vh, 24rem);
+  margin: auto;
+  text-align: center;
+  color: var(--reader-muted);
+  font: .95rem/1.55 system-ui;
+}
+
+.transcription-empty-state strong {
+  color: var(--reader-ink);
+  font: 750 1.2rem/1.25 system-ui;
+}
+
+.transcription-empty-state span { max-width: 36ch; }
 
 .provenance summary {
   cursor: pointer;
@@ -68,11 +89,35 @@
 
 @media (max-width: 760px) {
   .reader-text-context {
+    display: grid;
+    grid-template-columns: 1fr;
     align-items: stretch;
-    flex-direction: column;
+    gap: .75rem;
     max-width: none;
+    margin-top: 1rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
-  .text-view-switch { width: 100%; }
-  .text-view-switch button { flex: 1; }
+
+  .reader-text-context > p {
+    padding: .8rem 1rem;
+    border: 1px solid var(--reader-border);
+    border-radius: .45rem;
+    background: color-mix(in srgb, var(--reader-surface) 82%, transparent);
+  }
+
+  .text-view-switch {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .text-view-switch button {
+    width: 100%;
+    min-height: 3.25rem;
+  }
+
   .transcription-verse { padding-left: 0; }
+  .transcription-empty-state { min-height: 45vh; }
 }
