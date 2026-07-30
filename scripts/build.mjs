@@ -7,8 +7,7 @@ await resetDist();
 const shell = ({ title, body, description = 'Browse and read Harvard Institutional Books with your own gated access.', scripts = '' }) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="${escapeHtml(description)}"><meta name="color-scheme" content="light dark">
-<title>${escapeHtml(title)} · Open Shelves</title><link rel="stylesheet" href="${basePath}/assets/site.css">
-<script type="module" src="${basePath}/assets/site.js"></script>${scripts}</head>
+<title>${escapeHtml(title)} · Open Shelves</title><link rel="stylesheet" href="${basePath}/assets/site.css">${scripts}</head>
 <body><header><a class="brand" href="${basePath}/">Open Shelves</a><nav><a href="${basePath}/">Browse</a><a href="${basePath}/about/">About</a></nav></header>
 <main>${body}</main><footer><p>Open Shelves is an independent interface. Dataset access and use remain governed by the Institutional Data Initiative and Hugging Face.</p></footer></body></html>`;
 
