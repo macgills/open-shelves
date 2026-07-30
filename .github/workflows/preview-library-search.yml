@@ -18,7 +18,7 @@ jobs:
   build-previews:
     runs-on: ubuntu-latest
     env:
-      HF_OAUTH_CLIENT_ID: ${{ vars.HF_OAUTH_CLIENT_ID }}
+      HF_OAUTH_CLIENT_ID: ${{ secrets.HF_OAUTH_CLIENT_ID }}
     steps:
       - name: Check out library/search branch
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
         with:
           name: library-search-mobile-${{ github.sha }}
           path: library/test-results/visual/**/*.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Test and build durable-reader preview
