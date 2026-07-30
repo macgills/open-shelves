@@ -3,13 +3,13 @@ import path from 'node:path';
 import { escapeHtml, output, resetDist, root } from './lib.mjs';
 
 const basePath = '/open-shelves';
-const legacyOAuthClientPath = `${basePath}/.well-known/oauth-cimd`;
-const oauthClientPath = `${basePath}/oauth-cimd.json`;
+const legacyOAuthClientPath = '/.well-known/oauth-cimd';
+const oauthClientPath = '/oauth-cimd.json';
 await resetDist();
 
 // GitHub Pages derives MIME types from file extensions and cannot set a custom
-// Content-Type for the extensionless CIMD path. Rewrite the two browser assets
-// to use the JSON-suffixed client metadata document in the deployed artifact.
+// Content-Type for the extensionless CIMD path. Rewrite the stable path suffix
+// in both browser assets so this also works if the Pages base path changes.
 for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
   const target = path.join(root, 'dist', relativePath);
   const source = await readFile(target, 'utf8');
