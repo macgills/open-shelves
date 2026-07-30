@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { escapeHtml, root } from '../scripts/lib.mjs';
+import { escapeHtml } from '../scripts/lib.mjs';
 
 const read = path => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -25,5 +25,5 @@ test('requests only gated read access for dataset browsing', async () => {
 test('build is Harvard-only and does not run an ingestion exporter', async () => {
   const packageJson = JSON.parse(await read('package.json'));
   assert.equal(packageJson.scripts.build, 'node scripts/build.mjs');
-  assert.equal(root.endsWith('open-shelves'), true);
+  assert.equal(packageJson.scripts.ingest, undefined);
 });
