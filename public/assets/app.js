@@ -1,3 +1,4 @@
+await import('./auth-fallback.js');
 await import('./reader-search.js');
 await import('./harvard.js');
 await import('./reader-behaviour.js');
