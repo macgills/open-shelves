@@ -54,19 +54,17 @@ await writeFile(path.join(dist, 'preview-build.json'), `${JSON.stringify({
   builtAt: new Date().toISOString()
 }, null, 2)}\n`);
 
-const metadataPath = path.join(dist, 'oauth-cimd.json');
-const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
-const expectedClientId = `https://macgills.github.io${previewBasePath}/oauth-cimd.json`;
-const expectedCallback = `https://macgills.github.io${previewBasePath}/oauth/callback/huggingface/`;
-
-if (metadata.client_id !== expectedClientId || metadata.redirect_uris?.[0] !== expectedCallback) {
-  throw new Error('Preview OAuth metadata was not rewritten to the preview URL');
-}
-
 for (const relativePath of ['index.html', 'assets/harvard.js', 'assets/oauth-callback.js']) {
   const content = await readFile(path.join(dist, relativePath), 'utf8');
   if (!content.includes(previewBasePath) || content.includes(`'${productionBasePath}'`)) {
     throw new Error(`${relativePath} is not configured for ${previewBasePath}`);
+  }
+}
+
+for (const relativePath of ['assets/harvard.js', 'assets/oauth-callback.js']) {
+  const content = await readFile(path.join(dist, relativePath), 'utf8');
+  if (content.includes('oauth-cimd') || content.includes('missing-hf-oauth-client-id')) {
+    throw new Error(`${relativePath} is not configured with a registered Hugging Face OAuth client`);
   }
 }
 
